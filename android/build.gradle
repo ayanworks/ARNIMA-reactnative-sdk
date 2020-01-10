@@ -1,0 +1,50 @@
+buildscript {
+  repositories {
+    jcenter()
+    google()
+  }
+
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.3.1'
+  }
+}
+
+apply plugin: 'com.android.library'
+
+def safeExtGet(prop, fallback) {
+    rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+
+android {
+  compileSdkVersion safeExtGet('compileSdkVersion', 26)
+//  publishNonDefault true
+  splits {
+    abi {
+      include "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
+    }
+  }
+  defaultConfig {
+    minSdkVersion safeExtGet('minSdkVersion', 16)
+    targetSdkVersion safeExtGet('targetSdkVersion', 26)
+    versionCode 1
+    versionName "1.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+repositories {
+  jcenter()
+  maven { url "https://jitpack.io" }
+  maven { url 'https://repo.sovrin.org/repository/maven-public' }
+  google()
+}
+
+dependencies {
+  implementation fileTree(include: ['*.so'], dir: 'libs')
+  implementation "com.facebook.react:react-native:${safeExtGet('reactNativeVersion', '+')}"
+  api 'org.hyperledger:indy:1.14.0'
+  implementation 'net.java.dev.jna:jna:5.2.0'
+}
