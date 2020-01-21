@@ -4,4 +4,4 @@
 Cross-platform Mobile SDK for React Native 
 
 
-_Arnima (Hindi: अर्निमा, meaning "First ray of Sun") is a girl name in India whose zodiac sign is **Aries**_
+_Arnima (Hindi: अर्निमा, meaning "First ray of Sun") is a girl name in India whose zodiac sign is **Aries** :wink:_
