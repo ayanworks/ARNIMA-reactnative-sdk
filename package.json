@@ -1,8 +1,11 @@
+
 {
-  "name": "ArnimaSdk",
-  "version": "0.0.1",
+  "name": "react-native-arnima-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./src/Core",
   "scripts": {
-    "test": "jest",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
     "@babel/core": "^7.7.7",
@@ -14,30 +17,27 @@
     "metro-react-native-babel-preset": "^0.57.0",
     "react-test-renderer": "16.9.0"
   },
-  "peerDependencies": {
-    "react": "^16.0.0",
-    "react-native": "^0.60.0"
-  },
-  "jest": {
-    "preset": "react-native"
-  },
-  "dependencies": {},
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ayanworks/ARNIMA.git"
-  },
+  "author": "AyanWorks Technology Solutions Pvt. Ltd.",
   "keywords": [
-    "React",
-    "Native",
     "React Native",
     "Hyperledger Indy",
     "Indy",
     "Agent",
-    "Mobile Agent",
-    "Aries Mobile Agent",
-    "Arnima Sdk",
-    "ArnimaSdk"
+    "Mobile Agent"
   ],
-  "author": "Ayanworks Technologies",
-  "license": "ISC"
+  "license": "",
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "realm": "*",
+    "socket.io-client": "*",
+    "uuidv4": "*",
+    "base64url": "*",
+    "@types/node": "*",
+    "react-native-event-listeners": "*",
+    "events": "*"
+  },
+  "bundleDependencies": false,
+  "dependencies": {},
+  "deprecated": false
 }
