@@ -97,7 +97,7 @@ source 'https://github.com/hyperledger/indy-sdk.git'
 pod 'react-native-arnima-sdk', :path => '../node_modules/react-native-arnima-sdk'
 ```
 4. Do `pod install`.
-5. You need to dowwload and replace the file "Indy.framework" from Pods folder inside your Mobile app project from the following link (only if your xcode version is above 10.5)
+5. You need to download and replace the file "Indy.framework" from Pods folder inside your Mobile app project from the following link (only if your xcode version is above 10.5)
 Download from -  https://drive.google.com/file/d/1mbaZPKfiykwIAli2fUdJ8gZ1zNY17AJk/view
 Replace at - <Your_Project>/ios/Pods/libindy/
 
@@ -413,7 +413,7 @@ indy.socketListener();
 ```
  
 ## Receive an event on your mobile app
-You can received event in mobile application when connection is established, received the credentials and received proof request
+You can receive event in mobile application when connection is established. Receive the credentials and proof request.
 ```
 import { EventRegister } from 'react-native-event-listeners';
 
