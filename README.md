@@ -15,7 +15,7 @@ curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | b
 3. Confirm it's been installed with the following command:
 
 ```
-command -v nvm
+nvm --version
 ```
 
 4. Install node 10 using `nvm`
@@ -107,9 +107,7 @@ pod 'ArnimaSdk', :path => '../node_modules/react-native-arnima-sdk'
 ```
 
 4. Do `pod install`.
-5. You need to download and replace the file "Indy.framework" from Pods folder inside your Mobile app project from the following link (only if your xcode version is above 10.5)
-   Download from - https://drive.google.com/file/d/1mbaZPKfiykwIAli2fUdJ8gZ1zNY17AJk/view
-   Replace at - <Your_Project>/ios/Pods/libindy/
+5. You need to download and replace the file `Indy.framework` from Pods folder inside your Mobile app project from the following link (base on your xcode & swift version) Download from - https://drive.google.com/drive/folders/1_WJ3mEHqk5GHH9p5SI4bRKRXPwy5w_0e?usp=sharing,  Replace at - <Your_Project>/ios/Pods/libindy/
 
 ### Permissions
 
