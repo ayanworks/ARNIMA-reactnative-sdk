@@ -151,8 +151,9 @@ export async function sign(configJson: WalletConfig, credentialsJson: WalletCred
 }
 
 export async function verify(configJson: WalletConfig, credentialsJson: WalletCredentials, message: Message, field: string) {
-  try {    
-    const { [`${field}~sig`]: data, ...signedMessage } = message;
+  try {
+    const fieldKey = `${field}~sig`
+    const { [fieldKey]: data, ...signedMessage } = message;
 
     const signerVerkey = data.signer;
     const signedData = base64url.toBuffer(data.sig_data);
