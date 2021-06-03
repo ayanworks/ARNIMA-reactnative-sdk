@@ -4,8 +4,8 @@ This sdk is compatible to be used with both `Android` and `iOS` platforms. Pleas
 
 ## Dependencies
 
--   node 10.18.1 (To check, `nvm ls`) is required to install mobile agent specific dependencies like `realm`
-    1. Install `nvm`
+- node 10.18.1 (To check, `nvm ls`) is required to install mobile agent specific dependencies like `realm`
+  1. Install `nvm`
 
 ```
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
@@ -49,34 +49,40 @@ nvm use 10.18.1
 7. After this, run `npm install`, and the sdk will automatically unpack and install inside `node_modules`.
 8. Install the following SDK dependencies in your wallet application:
 
--   [Realm](https://www.npmjs.com/package/realm/ 'Click to open')
+- [Realm](https://www.npmjs.com/package/realm/ 'Click to open')
 
 ```
 npm install realm
 ```
 
--   [buffer](https://www.npmjs.com/package/buffer/ 'Click to open')
+- [buffer](https://www.npmjs.com/package/buffer/ 'Click to open')
 
 ```
 npm install buffer
 ```
 
--   [Socket Client](https://www.npmjs.com/package/socket.io-client/ 'Click to open')
+- [Socket Client](https://www.npmjs.com/package/socket.io-client/ 'Click to open')
 
 ```
 npm install socket.io-client
 ```
 
--   [Base64Url](https://www.npmjs.com/package/base64url/ 'Click to open')
+- [Base64Url](https://www.npmjs.com/package/base64url/ 'Click to open')
 
 ```
 npm install base64url
 ```
 
+- [EventListener](https://www.npmjs.com/package/react-native-event-listeners/ 'Click to open')
+
+```
+npm i react-native-event-listeners
+```
+
 ### Android: Link Mobile Agent SDK
 
 1. Execute `react-native link`
-2. Edit the `android/app/` level `build.gradle` file and add a repositories section:
+2. Edit the `android/` level `build.gradle` file and add a repositories section:
 
 ```
 repositories {
@@ -87,21 +93,26 @@ repositories {
 ### iOS: Link Mobile Agent SDK
 
 1. Include below lines on top of your project's `Podfile`.
+
 ```
 source 'https://github.com/CocoaPods/Specs.git'
 source 'https://github.com/hyperledger/indy-sdk.git'
 ```
+
 2. Change `platform :ios, '9.0'` to `platform :ios, '13.0'`
 3. Add following line to include sdk pod to your project.
+
 ```
-pod 'react-native-arnima-sdk', :path => '../node_modules/react-native-arnima-sdk'
+pod 'ArnimaSdk', :path => '../node_modules/react-native-arnima-sdk'
 ```
+
 4. Do `pod install`.
 5. You need to download and replace the file "Indy.framework" from Pods folder inside your Mobile app project from the following link (only if your xcode version is above 10.5)
-Download from -  https://drive.google.com/file/d/1mbaZPKfiykwIAli2fUdJ8gZ1zNY17AJk/view
-Replace at - <Your_Project>/ios/Pods/libindy/
+   Download from - https://drive.google.com/file/d/1mbaZPKfiykwIAli2fUdJ8gZ1zNY17AJk/view
+   Replace at - <Your_Project>/ios/Pods/libindy/
 
 ### Permissions
+
 1. Read/Write permissions: To access device storage for creating wallet.
 
 ## Using the SDK
@@ -117,6 +128,7 @@ import ArnimaSDK from 'react-native-arnima-sdk';
 ## Methods
 
 ### createWallet(config, credential, label) -> Array<String>
+
 ---
 
 This method is called after the user has set up their wallet name & passcode for the first time.
@@ -136,6 +148,7 @@ This method is called after the user has set up their wallet name & passcode for
     key: <PASSCODE>
 }
 ```
+
 `label` : String - Your label to show to the counterparty during connection
 
 **Example:**
@@ -146,7 +159,7 @@ import ArnimaSDK from 'react-native-arnima-sdk';
 const wallet  = await ArnimaSDK.createWallet(
     {id: 'John'},
     {key: '354016'},
-    John
+    'John'
     );
 ```
 
@@ -156,16 +169,16 @@ const wallet  = await ArnimaSDK.createWallet(
 `Sample Output`: `["K7P6Xoe31NBYn7md8qBm4F", "AsVcY4GUvJyeP2k78vJK2mTuPHT1sSdZjQBXbCUyXEbz", "John"]`
 
 `Error`: Below is a list of anticipated errors
-1. **Storage permissions error**. *Sample*: `{"code":"114","message":"org.hyperledger.indy.sdk.IOException: An IO error occurred."}]`
-2. **Wallet already error**. *Sample*:
-`{"code":"203","message":"Wallet already exists."}]`.
 
+1. **Storage permissions error**. _Sample_: `{"code":"114","message":"org.hyperledger.indy.sdk.IOException: An IO error occurred."}]`
+2. **Wallet already error**. _Sample_:
+   `{"code":"203","message":"Wallet already exists."}]`.
 
 ### ConnectWithMediator(url, apiType, apiBody, poolConfig) -> Boolean
+
 ---
 
 This method connects to an instantiated service of a mediator agent that is in charge of holding messages if the application is offline and to push messages to this `sdk` the moment mobile app is active.
-
 
 `url`: String - endpoint url of the instantiated mediator agent
 
@@ -178,7 +191,6 @@ This method connects to an instantiated service of a mediator agent that is in c
 ```
 "POST"
 ```
-
 
 `apiBody`: String - Stringified JSON that contains the wallet information needed to attach to the mediator agent
 
@@ -212,7 +224,7 @@ const wallet  = await ArnimaSDK.ConnectWithMediator(
         myDid: ArnimaSDK.getWallet().publicDid,
         verkey: ArnimaSDK.getWallet().verKey,
         label: ArnimaSDK.getWallet().label,
-        firebaseToken: '' 
+        firebaseToken: ''
 	}),
     poolConfig,
 );
@@ -223,11 +235,12 @@ const wallet  = await ArnimaSDK.ConnectWithMediator(
 `Success`: true
 
 ### createInvitation(didJson) -> String
+
 ---
+
 Returns a url for connection
 
-
-`didJson`: Json - Identity information as json 
+`didJson`: Json - Identity information as json
 
 ```
 {
@@ -255,15 +268,18 @@ const response = await ArnimaSDK.createInvitation({});
 
 **Returns:**
 
-`Success`: 
+`Success`:
+
 ```
 "http://10.10.10.10:8001?c_i=eyJAdHlwZSI6ICJkaWQ6csdsd2OkJ6Q2JzTlloTXJqSGlxWkRUVUFTSGc7c3BlYy9jb25uZWN0aW9ucy8xLjAvaW52aXRhdGlvbiIsICJAaWQiOiAiMmMzYjY5NjMtODc3YS00NDEwLWIwNTctZjVkZWU2NDNjZDc5IiwgImxhYmVsIjogInF3ZXJ0eSIsICJzZXJ2aWNlRW5kcG9pbnQiOiAiaHRvfgfDovLzEwLjEwLjEwLjIwds5MDAyIiwgInJlY2lwaWVudEtleXMiOiBbIjljYXVFbzhpMkdFa0pBYnZTRFBvQ0I0dnU3N05lTDZiUWRORm1RSmF6THJEIl19"
 ```
 
-
 ### acceptInvitation(didJson, invitationUrl) -> Boolean
+
 ---
-`didJson`: Json - Identity information as json  If don't have pass empty object - {}.
+
+`didJson`: Json - Identity information as json If don't have pass empty object - {}.
+
 ```
 {
     "did": string, (optional;
@@ -278,6 +294,7 @@ const response = await ArnimaSDK.createInvitation({});
     "method_name": string, (optional) method name to create fully qualified did (Example:  `did:method_name:NcYxiDXkpYi6ov5FcYDi1e`).
 }
 ```
+
 `invitationUrl`: String - Encoded url invitation.
 
 ```
@@ -300,7 +317,9 @@ import ArnimaSDK from 'react-native-arnima-sdk';
 `Success`: true
 
 ### getAllConnections() -> Array<Object>
+
 ---
+
 Function returns an array of `Objects`.
 
 **Example:**
@@ -314,13 +333,14 @@ const wallet  = await ArnimaSDK.getAllConnections();
 **Returns:**
 
 `Success`: Array[
-    {
-        `connectionId`: `string`,
-        `connection`: `string`,
-    }, ...
+{
+`connectionId`: `string`,
+`connection`: `string`,
+}, ...
 ]
 
-`Sample Output`: 
+`Sample Output`:
+
 ```
 [{
 connection: "{"did":"ADGeeTatN2KSqRaSXDb3jv","didDoc":{"@context":"https://w3id.org/did/v1","id":"ADGeeTatN2KSqRaSXDb3jv","publicKey":[{"id":"ADGeeTatN2KSqRaSXDb3jv#1","type":"Ed25519VerificationKey2018","controller":"ADGeeTatN2KSqRaSXDb3jv","publicKeyBase58":"62CKgBmargJ8mpCw5HWvcn2u3KAmvWNQ1ToyUzY5EkiV"}],"authentication":[{"type":"Ed25519SignatureAuthentication2018","publicKey":"ADGeeTatN2KSqRaSXDb3jv#1"}],"service":[{"id":"ADGeeTatN2KSqRaSXDb3jv;indy","type":"IndyAgent","priority":0,"serviceEndpoint":"http://35.188.200.216:4001/endpoint","recipientKeys":["62CKgBmargJ8mpCw5HWvcn2u3KAmvWNQ1ToyUzY5EkiV"],"routingKeys":["ApWggHJ9wSVCjLbjvjgRthjEC8jS1sUKJbBXxjVpPRxS"]}]},"verkey":"62CKgBmargJ8mpCw5HWvcn2u3KAmvWNQ1ToyUzY5EkiV","theirLabel":"ABC FIRM","state":"COMPLETE","theirDid":"6rLDWC9VPNz4f2TNePno9t","theirDidDoc":{"@context":"https://w3id.org/did/v1","id":"did:sov:6rLDWC9VPNz4f2TNePno9t","publicKey":[{"id":"did:sov:6rLDWC9VPNz4f2TNePno9t#1","type":"Ed25519VerificationKey2018","controller":"did:sov:6rLDWC9VPNz4f2TNePno9t","publicKeyBase58":"4Bww2NMiuWy2NBHyJUZXxU16SXydchHJfBwWohuzqTWd"}],"authentication":[{"type":"Ed25519SignatureAuthentication2018","publicKey":"did:sov:6rLDWC9VPNz4f2TNePno9t#1"}],"service":[{"id":"did:sov:6rLDWC9VPNz4f2TNePno9t;indy","type":"IndyAgent","priority":0,"recipientKeys":["4Bww2NMiuWy2NBHyJUZXxU16SXydchHJfBwWohuzqTWd"],"serviceEndpoint":"http://34.71.218.3:8004"}]}}"
@@ -329,10 +349,13 @@ connectionId: "62CKgBmargJ8mpCw5HWvcn2u3KAmvWNQ1ToyUzY5EkiV"
 ```
 
 ### deleteConnection(connectionId) -> Boolean
+
 ---
+
 Deletes a connection from database.
 
 `connectionId`: Unique connection Id
+
 ```
 230c830d-4bb2-4564-8671-586b45ab8935
 ```
@@ -352,7 +375,9 @@ const wallet  = await ArnimaSDK.deleteConnection(id);
 `Error`: false
 
 ### getWallet() -> JSON
+
 ---
+
 Get wallet information
 
 **Example:**
@@ -365,25 +390,29 @@ let sdkDB = await ArnimaSDK.getWallet();
 
 **Returns:**
 
-`Success`: 
+`Success`:
+
 ```
 {
     walletConfig: 'string',
     walletCredentials: 'string',
-    label: 'string',                
+    label: 'string',
     did: 'string',
     verKey: 'string',
     serviceEndpoint: 'string',
-    routingKey: 'string',                
-    masterSecret: 'string',                
+    routingKey: 'string',
+    masterSecret: 'string',
 }
 ```
 
 ## Socket Methods
+
 We are using socket for communication between app and mediator agent.
 
 ### socketInit() -> void
+
 ---
+
 **Example:**
 
 ```
@@ -393,7 +422,9 @@ indy.socketInit();
 ```
 
 ### socketEmit() -> void
+
 ---
+
 **Example:**
 
 ```
@@ -403,7 +434,9 @@ indy.socketEmit();
 ```
 
 ### socketListener() -> void
+
 ---
+
 **Example:**
 
 ```
@@ -411,9 +444,11 @@ import ArnimaSDK from 'react-native-arnima-sdk';
 
 indy.socketListener();
 ```
- 
+
 ## Receive an event on your mobile app
+
 You can receive event in mobile application when connection is established. Receive the credentials and proof request.
+
 ```
 import { EventRegister } from 'react-native-event-listeners';
 

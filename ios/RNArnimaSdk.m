@@ -286,4 +286,6 @@ RCT_EXPORT_METHOD(createPoolLedgerConfig:
     }];
 }
 
+RCT_EXPORT_MODULE(ArnimaSdk);
+
 @end
