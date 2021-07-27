@@ -1,0 +1,13 @@
+/*
+  Copyright AyanWorks Technology Solutions Pvt. Ltd. All Rights Reserved.
+  SPDX-License-Identifier: Apache-2.0
+*/
+
+export enum CredentialState {
+  STATE_REQUEST_SENT = "STATE_REQUEST_SENT",
+  STATE_REQUEST_RECEIVED = "STATE_REQUEST_RECEIVED",
+  STATE_ISSUED = "STATE_ISSUED",
+  STATE_CREDENTIAL_RECEIVED = "STATE_CREDENTIAL_RECEIVED",
+  STATE_ACKED = "STATE_ACKED",
+  STATE_REVOKED = "STATE_REVOKED",
+}

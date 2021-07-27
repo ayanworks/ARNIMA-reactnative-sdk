@@ -1,11 +1,31 @@
-# ARNIMA SDK (Aries React-NatIve Mobile Agent)
+# ARNIMA SDK (Aries React-Native Mobile Agent)
 
-This sdk is compatible to be used with both `Android` and `iOS` platforms. Please refer `Installation` section on how to set up the sdk and start running.
+This sdk is compatible to be used with both Android and iOS platforms. Please refer Installation section on how to set up the sdk and start running. This SDK is compliant and interoperable with the standards defined in the [Aries RFCs](https://github.com/hyperledger/aries-rfcs).
+
+## Features
+
+#### Finished
+
+- ✅ [Issue Credential Protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0036-issue-credential/README.md)
+- ✅ [Present Proof Protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0037-present-proof/README.md)
+- ✅ [Connection Protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0160-connection-protocol/README.md)
+- ✅ [Trust Ping Protocol](https://github.com/hyperledger/aries-rfcs/tree/master/features/0048-trust-ping)
+- ✅ [Basic Message Protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0095-basic-message/README.md)
+
+#### TODO
+
+- ⌨️ [Mediator coordination protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0211-route-coordination/README.md)
+- ⌨️ Connection-less Issuance and Verification
+- ⌨️ Support with other Mediator Agent
+
+**Notes:**
+Currently, SDK supports our custom build mediator agent and we are planning to open-source the mediator agent soon.
 
 ## Dependencies
 
-- node 10.18.1 (To check, `nvm ls`) is required to install mobile agent specific dependencies like `realm`
-  1. Install `nvm`
+- The **node 10.18.1** (To check, nvm ls) is required to install mobile agent specific dependencies like realm
+
+1.  Install nvm
 
 ```
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
@@ -18,7 +38,7 @@ curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | b
 nvm --version
 ```
 
-4. Install node 10 using `nvm`
+4. Install node 10 using nvm
 
 ```
 nvm install 10.18.1
@@ -32,15 +52,12 @@ nvm use 10.18.1
 
 ## Installation
 
-1. Clone this repository
-   `git clone *****`
-2. `cd` into the repo
-   `cd mobile-sdk`
-3. Create the `ARNIMA mobile agent package` by using the following command
-   `npm pack`
-4. This will create a `*.tgz` file inside current directory.
-5. Copy the `*.tgz` file and paste it inside the root of your mobile wallet project.
-6. Inside your project of mobile app wallet's `package.json,` add this to the `dependencies` block:
+1. Clone this repository `git clone *****`
+2. `cd` into the repo `cd mobile-sdk`
+3. Create the `ARNIMA mobile agent package` by using the following command npm pack
+4. This will create a `*.tgz `file inside current directory.
+5. Copy the `*.tgz `file and paste it inside the root of your mobile wallet project.
+6. Inside your project of mobile app wallet's package.json, add this to the dependencies block:
 
 ```
 "react-native-arnima-sdk": "./<MOBILE_AGENT_PACKAGE>.tgz"
@@ -49,40 +66,40 @@ nvm use 10.18.1
 7. After this, run `npm install`, and the sdk will automatically unpack and install inside `node_modules`.
 8. Install the following SDK dependencies in your wallet application:
 
-- [Realm](https://www.npmjs.com/package/realm/ 'Click to open')
+- **Realm**
 
 ```
 npm install realm
 ```
 
-- [buffer](https://www.npmjs.com/package/buffer/ 'Click to open')
+- **buffer**
 
 ```
 npm install buffer
 ```
 
-- [Socket Client](https://www.npmjs.com/package/socket.io-client/ 'Click to open')
+- **Socket Client**
 
 ```
 npm install socket.io-client
 ```
 
-- [Base64Url](https://www.npmjs.com/package/base64url/ 'Click to open')
+- **Base64Url**
 
 ```
 npm install base64url
 ```
 
-- [EventListener](https://www.npmjs.com/package/react-native-event-listeners/ 'Click to open')
+- **EventListener**
 
 ```
 npm i react-native-event-listeners
 ```
 
-### Android: Link Mobile Agent SDK
+## Android: Link Mobile Agent SDK
 
-1. Execute `react-native link`
-2. Edit the `android/` level `build.gradle` file and add a repositories section:
+1. Execute react-native link
+2. Edit the android/ level build.gradle file and add a repositories section:
 
 ```
 repositories {
@@ -90,16 +107,16 @@ repositories {
 }
 ```
 
-### iOS: Link Mobile Agent SDK
+## iOS: Link Mobile Agent SDK
 
-1. Include below lines on top of your project's `Podfile`.
+1. Include below lines on top of your project's Podfile.
 
 ```
 source 'https://github.com/CocoaPods/Specs.git'
 source 'https://github.com/hyperledger/indy-sdk.git'
 ```
 
-2. Change `platform :ios, '9.0'` to `platform :ios, '13.0'`
+2. Change platform :ios, '9.0' to platform :ios, '13.0'
 3. Add following line to include sdk pod to your project.
 
 ```
@@ -107,18 +124,33 @@ pod 'ArnimaSdk', :path => '../node_modules/react-native-arnima-sdk'
 ```
 
 4. Do `pod install`.
-5. You need to download and replace the file `Indy.framework` from Pods folder inside your Mobile app project from the following link (base on your xcode & swift version) Download from - https://drive.google.com/drive/folders/1_WJ3mEHqk5GHH9p5SI4bRKRXPwy5w_0e?usp=sharing,  Replace at - <Your_Project>/ios/Pods/libindy/
+5. You need to download and replace the file `Indy.framework` from Pods folder inside your Mobile app project from the following link (base on your xcode & swift version) Download from - https://drive.google.com/drive/folders/1_WJ3mEHqk5GHH9p5SI4bRKRXPwy5w_0e?usp=sharing, Replace at - <Your_Project>/ios/Pods/libindy/
 
-### Permissions
+## React Native Compatibility
 
-1. Read/Write permissions: To access device storage for creating wallet.
+If there are any compatibility issue please add here.
+
+## Permissions
+
+- **Internet Permission:** To use internet in a device at time of access Restful API.
+
+```
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+- **Read/Write permissions:** To access device storage for creating wallet.
+
+```
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+```
 
 ## Using the SDK
 
 1. Import the library
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 ```
 
 2. Use the following methods
@@ -147,18 +179,18 @@ This method is called after the user has set up their wallet name & passcode for
 }
 ```
 
-`label` : String - Your label to show to the counterparty during connection
+`label` : String - Your label to show to the counter party during connection
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-const wallet  = await ArnimaSDK.createWallet(
-    {id: 'John'},
-    {key: '354016'},
-    'John'
-    );
+const wallet = await ArnimaSDK.createWallet(
+  { id: 'John' },
+  { key: '354016' },
+  'John'
+)
 ```
 
 **Returns:**
@@ -212,20 +244,20 @@ JSON.stringify({
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-const wallet  = await ArnimaSDK.ConnectWithMediator(
-    'http://localhost:8080/discover',
-    'POST',
-    JSON.stringify({
-        myDid: ArnimaSDK.getWallet().publicDid,
-        verkey: ArnimaSDK.getWallet().verKey,
-        label: ArnimaSDK.getWallet().label,
-        firebaseToken: ''
-	}),
-    poolConfig,
-);
+const wallet = await ArnimaSDK.ConnectWithMediator(
+  'http://localhost:8080/discover',
+  'POST',
+  JSON.stringify({
+    myDid: ArnimaSDK.getWallet().publicDid,
+    verkey: ArnimaSDK.getWallet().verKey,
+    label: ArnimaSDK.getWallet().label,
+    firebaseToken: '',
+  }),
+  poolConfig
+)
 ```
 
 **Returns:**
@@ -257,16 +289,15 @@ Returns a url for connection
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-const response = await ArnimaSDK.createInvitation({});
-
+const response = await ArnimaSDK.createInvitation({})
 ```
 
 **Returns:**
 
-`Success`:
+`Success`: string
 
 ```
 "http://10.10.10.10:8001?c_i=eyJAdHlwZSI6ICJkaWQ6csdsd2OkJ6Q2JzTlloTXJqSGlxWkRUVUFTSGc7c3BlYy9jb25uZWN0aW9ucy8xLjAvaW52aXRhdGlvbiIsICJAaWQiOiAiMmMzYjY5NjMtODc3YS00NDEwLWIwNTctZjVkZWU2NDNjZDc5IiwgImxhYmVsIjogInF3ZXJ0eSIsICJzZXJ2aWNlRW5kcG9pbnQiOiAiaHRvfgfDovLzEwLjEwLjEwLjIwds5MDAyIiwgInJlY2lwaWVudEtleXMiOiBbIjljYXVFbzhpMkdFa0pBYnZTRFBvQ0I0dnU3N05lTDZiUWRORm1RSmF6THJEIl19"
@@ -276,7 +307,7 @@ const response = await ArnimaSDK.createInvitation({});
 
 ---
 
-`didJson`: Json - Identity information as json If don't have pass empty object - {}.
+`didJson`: Json - Identity information as json if you don't have pass empty object - {}.
 
 ```
 {
@@ -301,13 +332,10 @@ const response = await ArnimaSDK.createInvitation({});
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
- const wallet = await ArnimaSDK.acceptInvitation(
-                {},
-                InvitationUrl,
-            );
+const wallet = await ArnimaSDK.acceptInvitation({}, InvitationUrl)
 ```
 
 **Returns:**
@@ -322,10 +350,10 @@ Function returns an array of `Objects`.
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-const wallet  = await ArnimaSDK.getAllConnections();
+const wallet = await ArnimaSDK.getAllConnections()
 ```
 
 **Returns:**
@@ -360,10 +388,10 @@ Deletes a connection from database.
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-const wallet  = await ArnimaSDK.deleteConnection(id);
+const wallet = await ArnimaSDK.deleteConnection(id)
 ```
 
 **Returns:**
@@ -380,10 +408,10 @@ Get wallet information
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-let sdkDB = await ArnimaSDK.getWallet();
+const sdkDB = await ArnimaSDK.getWallet()
 ```
 
 **Returns:**
@@ -403,6 +431,637 @@ let sdkDB = await ArnimaSDK.getWallet();
 }
 ```
 
+## openWallet() -> Boolean
+
+---
+
+To open wallet
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const sdkDB = await ArnimaSDK.openWallet()
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+## sendCredentialProposal(connectionId,credentialProposal, schemaId, credDefId, issuerDid, comment) -> Boolean
+
+---
+
+To send credential proposal.
+
+`connectionId`: object
+`credentialProposal`: string
+`schemaId`: string
+`credDefId`: string
+`issuerDid`: string
+`comment`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.sendCredentialProposal(
+  connectionId,
+  credentialProposal,
+  schemaId,
+  credDefId,
+  issuerDid,
+  comment
+)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+## acceptCredentialOffer(messageId, inboundMessage) -> Boolean
+
+---
+
+To credential offer.
+
+`messageId`: string
+`inboundMessage`: InboundMessage
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.acceptCredentialOffer(
+  messageId,
+  inboundMessage
+)
+```
+
+**Returns:**
+
+`Success`: true
+
+### getAllActionMessagesByMessageId(messageId) -> JSON
+
+---
+
+To get all action messages by using `messageId`.
+
+`messageId`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getAllActionMessagesByMessageId(messageId)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+ {
+	message: {
+		'@type': string,
+		'@id': string,
+		'~thread': {},
+		comment: string,
+		credential_preview: {
+			'@type': string,
+			attributes: [{
+				name: string,
+				value: string
+			}]
+		},
+		'offers~attach': [{
+			'@id': string,
+			'mime-type': string,
+			data: {
+				base64: string
+			}
+		}]
+	},
+	recipient_verkey: string,
+	sender_verkey: string
+}
+```
+
+### getAllCredential(filter) -> Array<Object>
+
+---
+
+To get all credential.
+
+`filter`: Object
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getAllCredential(filter)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+ [{
+ 	referent: string,
+ 	attrs: {
+ 		name: string
+ 	},
+ 	schema_id: string,
+ 	cred_def_id: string,
+ 	rev_reg_id: string,
+ 	cred_rev_id: string
+ }]
+```
+
+## sendBasicMessage(message, connectionId) -> Boolean
+
+---
+
+Send a basic message.
+
+`message`: string
+`connectionId`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const sdkDB = await ArnimaSDK.sendBasicMessage(message, connectionId)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+### createPool(poolName, poolConfig, defaultPool) -> String
+
+---
+
+To create Pool.
+
+`poolName`: string
+`poolConfig`: string
+`defaultPool`: boolean
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.createPool(poolName, poolConfig, defaultPool)
+```
+
+**Returns:**
+
+`Success`: string
+
+### getAllPool() -> Array<Object>
+
+---
+
+To get all pools.
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getAllPool()
+```
+
+**Returns:**
+
+`Success`:
+
+```
+[{
+		type: string,
+		id: string,
+		value: '{
+		"poolName": string,
+		"poolConfig": "{"
+		reqSignature ": {},
+		"txn": {
+			"data": {
+				"data": {
+					"alias": string,
+					"blskey": string,
+					"blskey_pop": string,
+					"client_ip": string,
+					"client_port": 9702,
+					"node_ip": string,
+					"node_port": 9701,
+					"services": [string]
+				},
+				"dest": string
+			},
+			"metadata": {
+				"from": string
+			},
+			"type": string
+		},
+		"txnMetadata": {
+			"seqNo": 1,
+			"txnId": string
+		},
+		"ver": string
+	}
+	"}',
+	tags: {
+		poolName: string,
+		isSelected: string
+	}
+}]
+```
+
+## selectDefaultPool(poolName) -> Boolean
+
+---
+
+Send a basic message.
+
+`poolName`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const sdkDB = await ArnimaSDK.selectDefaultPool(poolName)
+```
+
+**Returns:**
+
+`Success`: true
+
+###
+
+IssueCredentialByConnectionId(connectionId) -> Array<Object>
+
+---
+
+To get issue credential by using connection Id.
+
+`connectionId`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getIssueCredentialByConnectionId(connectionId)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+ [{
+ 		type: string,
+ 		id: string,
+ 		value: '{
+ 		"connectionId": string,
+ 		"theirLabel": string,
+ 		"schemaId": string,
+ 		"credentialDefinitionId": string,
+ 		"state": string,
+ 		"createdAt": string,
+ 		"updatedAt": string
+ 	}',
+ 	tags: {
+ 		issueCredentialId: string,
+ 		connectionId: string
+ 	}
+ }]
+```
+
+## sendProof(messageId,inboundMessage, revealAttributes) -> Boolean
+
+---
+
+To send a proof.
+
+`messageId`: string
+`inboundMessage`: InboundMessage
+`revealAttributes`: boolean
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.sendProof(
+  messageId,
+  inboundMessage,
+  revealAttributes
+)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+## verifyProof(messageId, inboundMessage) -> Boolean
+
+---
+
+To send a proof.
+
+`messageId`: string
+`inboundMessage`: InboundMessage
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.verifyProof(messageId, inboundMessage)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+### getPresentationByConnectionId(connectionId) -> Array<Object>
+
+---
+
+To get connection presented by using connection Id.
+
+`connectionId`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getPresentationByConnectionId(connectionId)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+[{
+		type: string,
+		id: string,
+		value: '{
+		"connectionId": string,
+		"theirLabel": string,
+		"threadId": string,
+		"presentationRequest": {
+			"name": string,
+			"requested_predicates": {},
+			"requested_attributes": {
+				"additionalProp1": {
+					"name": string,
+					"non_revoked": {
+						"to": long
+					},
+					"restrictions": [{
+						"cred_def_id": string
+					}]
+				}
+			},
+			"version": string,
+			"nonce": string
+		},
+		"state": string,
+		"updatedAt": string,
+		"createdAt": string
+	}',
+	tags: {
+		connectionId: string,
+		messageId: string,
+		presentationId: string
+	}
+}]
+```
+
+### getConnectionRecord(query) -> Array<Object>
+
+---
+
+To get connection record.
+
+`query`: Object
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getConnectionRecord(query)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+[{
+		type: string,
+		id: string,
+		value: '{
+		"didDoc": {
+			"@context": string,
+			"id": string,
+			"publicKey": [{
+				"id": string,
+				"type": string,
+				"controller": string,
+				"publicKeyBase58": string
+			}],
+			"authentication": [{
+				"type": string,
+				"publicKey": string
+			}],
+			"service": [{
+				"id": string,
+				"type": string,
+				"priority": int,
+				"serviceEndpoint": string,
+				"recipientKeys": [string],
+				"routingKeys": [string]
+			}]
+		},
+		"verkey": string,
+		"alias": {},
+		"state": string,
+		"createdAt": string,
+		"updatedAt": string
+	}',
+	tags: {
+		connectionId: string
+	}
+}]
+```
+
+### getPresentationRecord(query) -> Array<Object>
+
+---
+
+To get connection record.
+
+`query`: Object
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.getPresentationRecord(query)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+[{
+		"type": string,
+		"id": string,
+		"value": '{
+		"connectionId": string,
+		"theirLabel": string,
+		"threadId": string ",
+		"presentationRequest": {
+			"name": string,
+			"requested_predicates": {},
+			"requested_attributes": {
+				"additionalProp1": {
+					"name": string,
+					"non_revoked": {
+						"to": long
+					},
+					"restrictions": [{
+						"cred_def_id": string
+					}]
+				}
+			},
+			"version": string,
+			"nonce": string
+		},
+		"presentation": {
+			"proof": {
+				"proofs": [{
+					"primary_proof": {
+						"eq_proof": {
+							"revealed_attrs": {
+								"name": string
+							},
+							"a_prime": string,
+							"v": string,
+							"m": {
+								"master_secret": string
+							},
+							"m2": string
+						},
+						"ge_proofs": []
+					},
+					"non_revoc_proof": string
+				}],
+				"aggregated_proof": {
+					"c_hash": string,
+					"c_list": [
+						[int, int, int....]
+					]
+				}
+			},
+			"requested_proof": {
+				"revealed_attrs": {
+					"additionalProp1": {
+						sub_proof_index ":int,
+						"raw": string,
+						"encoded": string
+
+					}
+				}
+			}
+		}
+	}
+}]
+```
+
+## sendPresentProofRequest(connectionId, proofRequest, comment) -> Boolean
+
+---
+
+To send a present proof.
+
+`connectionId`: string
+`proofRequest`: object
+`comment`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.sendPresentProofRequest(
+  connectionId,
+  proofRequest,
+  comment
+)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+## sendProposePresentation(connectionId, presentationProposal) -> Boolean
+
+---
+
+To send a present proof.
+
+`connectionId`: string
+`presentationProposal`: object
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.sendProposePresentation(
+  connectionId,
+  presentationProposal
+)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
 ## Socket Methods
 
 We are using socket for communication between app and mediator agent.
@@ -413,10 +1072,10 @@ We are using socket for communication between app and mediator agent.
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-indy.socketInit();
+indy.socketInit()
 ```
 
 ### socketEmit() -> void
@@ -425,10 +1084,10 @@ indy.socketInit();
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-indy.socketEmit();
+indy.socketEmit()
 ```
 
 ### socketListener() -> void
@@ -437,17 +1096,17 @@ indy.socketEmit();
 
 **Example:**
 
-```
-import ArnimaSDK from 'react-native-arnima-sdk';
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
 
-indy.socketListener();
+indy.socketListener()
 ```
 
 ## Receive an event on your mobile app
 
 You can receive event in mobile application when connection is established. Receive the credentials and proof request.
 
-```
+```ts
 import { EventRegister } from 'react-native-event-listeners';
 
 componentDidMount() {
