@@ -4,8 +4,12 @@
 #else
 #import <React/RCTBridgeModule.h>
 #endif
+#import <Indy/Indy.h>
 
 @interface ArnimaSdk : NSObject <RCTBridgeModule>
+{
+    IndyHandle WalletHandleNumber;
+}
 
 @end
   

@@ -2,16 +2,13 @@
   Copyright AyanWorks Technology Solutions Pvt. Ltd. All Rights Reserved.
   SPDX-License-Identifier: Apache-2.0
 */
-
 package com.arnimasdk;
 
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
-import android.util.Log;
 
-import com.facebook.common.file.FileUtils;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -20,7 +17,6 @@ import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableNativeArray;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
 import org.hyperledger.indy.sdk.IndyException;
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds;
@@ -48,21 +44,23 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 
 public class ArnimaSdk extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
-    private static final String DEFAULT_POOL_NAME = "pool";
     public static final int PROTOCOL_VERSION = 2;
-    private String ErrorCode = "ERROR";
+    private final Map<Integer, Wallet> walletMap;
+    private Map<Integer, CredentialsSearchForProofReq> credentialSearchMap;
+    private int credentialSearchIterator = 0;
 
     public ArnimaSdk(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
+        this.walletMap = new ConcurrentHashMap<>();
+        this.credentialSearchMap = new ConcurrentHashMap<>();
         try {
             Os.setenv("EXTERNAL_STORAGE", reactContext.getExternalFilesDir(null).getAbsolutePath(), true);
             System.loadLibrary("indy");
@@ -73,54 +71,37 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
 
     @Override
     public String getName() {
-    return "ArnimaSdk";
-  }
-
-    @ReactMethod
-    public void createPoolLedgerConfig(String poolConfigString, Promise promise) {
-        new CreatePoolLedgerConfig().execute(poolConfigString, promise);
+        return "ArnimaSdk";
     }
 
-    private class CreatePoolLedgerConfig extends AsyncTask {
-        Promise promise = null;
+    @ReactMethod
+    public void createPoolLedgerConfig(String poolName, String poolConfig, Promise promise) {
+        try {
+            Pool.setProtocolVersion(PROTOCOL_VERSION).get();
 
-        @Override
-        protected Object doInBackground(Object[] objects) {
+            File file = new File(Environment.getExternalStorageDirectory() + "/" + File.separator + "tempPool.txn");
 
-            try {
-                promise = (Promise) objects[1];
-                Pool.setProtocolVersion(PROTOCOL_VERSION).get();
+            file.createNewFile();
 
-                File file = new File(Environment.getExternalStorageDirectory() + "/" + File.separator + "temp.txn");
+            FileWriter fw = new FileWriter(file);
+            fw.write(poolConfig);
+            fw.close();
 
-                file.createNewFile();
+            PoolJSONParameters.CreatePoolLedgerConfigJSONParameter createPoolLedgerConfigJSONParameter = new PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(
+                    file.getAbsolutePath());
 
-                FileWriter fw = new FileWriter(file);
-                fw.write(objects[0].toString());
-                fw.close();
+            Pool.createPoolLedgerConfig(poolName, createPoolLedgerConfigJSONParameter.toJson()).get();
 
-                PoolJSONParameters.CreatePoolLedgerConfigJSONParameter createPoolLedgerConfigJSONParameter = new PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(
-                        file.getAbsolutePath());
-
-                Pool.createPoolLedgerConfig(DEFAULT_POOL_NAME, createPoolLedgerConfigJSONParameter.toJson()).get();
-
-                promise.resolve(null);
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.getMessage(), e);
-            }
-            return promise;
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+            promise.resolve(null);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.getMessage(), e);
         }
     }
 
     @ReactMethod
-    public void createWallet(String configJson, String credentialsJson, Promise promise) {
-        new CreateWallet().execute(configJson, credentialsJson, promise);
+    public void createWallet(String walletConfig, String walletCredentials, Promise promise) {
+        new CreateWallet().execute(walletConfig, walletCredentials, promise);
     }
 
     private class CreateWallet extends AsyncTask {
@@ -128,7 +109,6 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
 
         @Override
         protected Object doInBackground(Object[] objects) {
-
             try {
                 promise = (Promise) objects[2];
                 Wallet.createWallet(objects[0].toString(), objects[1].toString()).get();
@@ -146,12 +126,34 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         }
     }
 
+
     @ReactMethod
-    public Wallet openWallet(String configJson, String credentialsJson, Promise promise) {
+    public void openInitWallet(String walletConfig, String walletCredentials, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = Wallet.openWallet(configJson, credentialsJson).get();
+            if (walletMap.size() == 0) {
+                wallet = Wallet.openWallet(walletConfig, walletCredentials).get();
+                walletMap.put(1, wallet);
+            } else {
+                wallet = walletMap.get(1);
+            }
+            promise.resolve(true);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
 
+    @ReactMethod
+    public Wallet openWallet(String walletConfig, String walletCredentials, Promise promise) {
+        Wallet wallet = null;
+        try {
+            if (walletMap.size() == 0) {
+                wallet = Wallet.openWallet(walletConfig, walletCredentials).get();
+                walletMap.put(1, wallet);
+            } else {
+                wallet = walletMap.get(1);
+            }
         } catch (Exception e) {
             IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
             promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
@@ -160,10 +162,10 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         }
     }
 
-    public Pool openPoolLedger(String poolConfig, Promise promise) {
+    public Pool openPoolLedger(String poolName, String poolConfig, Promise promise) {
         Pool pool = null;
         try {
-            pool = Pool.openPoolLedger(DEFAULT_POOL_NAME, poolConfig).get();
+            pool = Pool.openPoolLedger(poolName, "{}").get();
             return pool;
         } catch (Exception e) {
             IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
@@ -171,19 +173,6 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
             return null;
         }
     }
-
-    public void closeWallet(Wallet wallet) {
-        try {
-            wallet.closeWallet().get();
-        } catch (IndyException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-    }
-
     public void closePoolLedger(Pool pool) {
         try {
             pool.closePoolLedger().get();
@@ -197,387 +186,561 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void createAndStoreMyDids(String configJson, String credentialsJson, String didJson,
-            Boolean createMasterSecret, Promise promise) {
-        new CreateAndStoreMyDids().execute(configJson, credentialsJson, didJson, createMasterSecret, promise);
-    }
-
-    private class CreateAndStoreMyDids extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            Wallet wallet = null;
-            promise = (Promise) objects[4];
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    DidResults.CreateAndStoreMyDidResult createMyDidResult = Did
-                            .createAndStoreMyDid(wallet, objects[2].toString()).get();
-                    String myDid = createMyDidResult.getDid();
-                    String myVerkey = createMyDidResult.getVerkey();
-                    WritableArray response = new WritableNativeArray();
-                    JSONObject config = new JSONObject(objects[0].toString());
-                    response.pushString(myDid);
-                    response.pushString(myVerkey);
-                    if ((Boolean) objects[3]) {
-                        String outputMasterSecretId = Anoncreds
-                                .proverCreateMasterSecret(wallet, config.get("id").toString()).get();
-                        response.pushString(outputMasterSecretId);
-                    }
-                    promise.resolve(response);
+    public void createAndStoreMyDid(String walletConfig, String walletCredentials, String didJson,
+                                     Boolean createMasterSecret, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                DidResults.CreateAndStoreMyDidResult createMyDidResult = Did
+                        .createAndStoreMyDid(wallet, didJson).get();
+                String myDid = createMyDidResult.getDid();
+                String myVerkey = createMyDidResult.getVerkey();
+                WritableArray response = new WritableNativeArray();
+                JSONObject config = new JSONObject(walletConfig);
+                response.pushString(myDid);
+                response.pushString(myVerkey);
+                if ((Boolean) createMasterSecret) {
+                    String outputMasterSecretId = Anoncreds
+                            .proverCreateMasterSecret(wallet, config.get("id").toString()).get();
+                    response.pushString(outputMasterSecretId);
                 }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
+                promise.resolve(response);
             }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
         }
     }
-
-    // ********* non_secrets ********* //
 
     @ReactMethod
-    public void addWalletRecord(String configJson, String credentialsJson, String type, String id, String value, String tags,
+    public void addWalletRecord(String walletConfig, String walletCredentials, String recordType, String id, String value, String tags,
                                 Promise promise) {
-        new AddWalletRecord().execute(configJson, credentialsJson, type, id, value, tags,promise);
-    }
-
-    private class AddWalletRecord extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[6];
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    WalletRecord.add(wallet, objects[2].toString(), objects[3].toString(), objects[4].toString(),objects[5].toString()).get();
-                    promise.resolve("true");
-                }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                WalletRecord.add(wallet, recordType, id, value, tags).get();
+                promise.resolve("true");
             }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
         }
     }
 
     @ReactMethod
-    public void updateWalletRecord(String configJson, String credentialsJson, String type, String id, String value, String tags,
-                                Promise promise) {
-        new updateWalletRecord().execute(configJson, credentialsJson, type, id, value, tags,promise);
-    }
-
-    private class updateWalletRecord extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[6];
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    WalletRecord.updateValue(wallet, objects[2].toString(), objects[3].toString(), objects[4].toString())
-                            .get();
-
-                    if(!objects[5].toString().equalsIgnoreCase("{}")) {
-                        WalletRecord.updateTags(wallet,objects[2].toString(), objects[3].toString(),objects[5].toString());
-                    }
-                    promise.resolve("true");
-                }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
-            }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-    }
-
-    @ReactMethod
-    public void deleteWalletRecord(String configJson, String credentialsJson, String type, String id,
+    public void updateWalletRecord(String walletConfig, String walletCredentials, String recordType, String id, String value, String tags,
                                    Promise promise) {
-        new deleteWalletRecord().execute(configJson, credentialsJson, type, id,promise);
-    }
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                WalletRecord.updateValue(wallet, recordType, id, value)
+                        .get();
 
-    private class deleteWalletRecord extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[4];
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    WalletRecord.delete(wallet, objects[2].toString(), objects[3].toString())
-                            .get();
-                    promise.resolve("true");
+                if (!tags.equalsIgnoreCase("{}")) {
+                    WalletRecord.updateTags(wallet, recordType, id,tags);
                 }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
+                promise.resolve("true");
             }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
         }
     }
 
     @ReactMethod
-    public void getWalletRecordFromQuery(String configJson, String credentialsJson, String type, String query,
+    public void deleteWalletRecord(String walletConfig, String walletCredentials, String recordType, String id,
                                    Promise promise) {
-        new getWalletRecordFromQuery().execute(configJson, credentialsJson, type, query,promise);
-    }
-
-    private class getWalletRecordFromQuery extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[4];
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    WalletSearch search  = WalletSearch.open(wallet, objects[2].toString(), objects[3].toString(), "{\"retrieveTags\":true,\"retrieveType \":true, \"retrieveType\": true }")
-                            .get();
-                    String recordsJson = WalletSearch.searchFetchNextRecords(wallet, search, 100).get();
-
-                    promise.resolve(recordsJson);
-                }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                WalletRecord.delete(wallet, recordType, id)
+                        .get();
+                promise.resolve("true");
             }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-        }
-    }
-
-
-    @ReactMethod
-    public void packMessage(String configJson, String credentialsJson, ReadableArray message,
-            ReadableArray receiverKeys, String senderVk, Promise promise) {
-        new PackMessage().execute(configJson, credentialsJson, message, receiverKeys, senderVk, promise);
-    }
-
-    private class PackMessage extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[5];
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    byte[] buffer = readableArrayToBuffer((ReadableArray) objects[2]);
-
-                    ReadableArray receiverKeys = (ReadableArray) objects[3];
-                    String[] keys = new String[receiverKeys.size()];
-                    for (int i = 0; i < receiverKeys.size(); i++) {
-                        keys[i] = receiverKeys.getString(i);
-                    }
-                    Gson gson = new Gson();
-                    String receiverKeysJson = gson.toJson(keys);
-
-                    byte[] jwe = Crypto.packMessage(wallet, receiverKeysJson, objects[4].toString(), buffer).get();
-                    WritableArray result = new WritableNativeArray();
-                    for (byte b : jwe) {
-                        result.pushInt(b);
-                    }
-                    promise.resolve(result);
-                }
-
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
-            }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
         }
     }
 
     @ReactMethod
-    public void unpackMessage(String configJson, String credentialsJson, ReadableArray jwe, Promise promise) {
-        new UnpackMessage().execute(configJson, credentialsJson, jwe, promise);
-    }
+    public void getWalletRecordFromQuery(String walletConfig, String walletCredentials, String recordType, String query,
+                                         Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                WalletSearch search = WalletSearch.open(wallet, recordType, query, "{\"retrieveTags\":true,\"retrieveType \":true, \"retrieveType\": true }")
+                        .get();
+                String recordsJson = WalletSearch.searchFetchNextRecords(wallet, search, 100).get();
 
-    private class UnpackMessage extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[3];
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    ReadableArray jwe = (ReadableArray) objects[2];
-                    byte[] buffer = readableArrayToBuffer(jwe);
-                    byte[] res = Crypto.unpackMessage(wallet, buffer).get();
-
-                    WritableArray result = new WritableNativeArray();
-                    for (byte b : res) {
-                        result.pushInt(b);
-                    }
-                    promise.resolve(result);
-                }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
+                promise.resolve(recordsJson);
             }
-        }
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
         }
     }
 
     @ReactMethod
-    public void cryptoSign(String configJson, String credentialsJson, String signerVk, ReadableArray messageRaw,
-            Promise promise) {
-        new cryptoSign().execute(configJson, credentialsJson, signerVk, messageRaw, promise);
+    public void packMessage(String walletConfig, String walletCredentials, ReadableArray message,
+                            ReadableArray receiverKeyArray, String senderVk, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                byte[] buffer = readableArrayToBuffer((ReadableArray) message);
+
+                ReadableArray receiverKeys = (ReadableArray) receiverKeyArray;
+                String[] keys = new String[receiverKeys.size()];
+                for (int i = 0; i < receiverKeys.size(); i++) {
+                    keys[i] = receiverKeys.getString(i);
+                }
+                Gson gson = new Gson();
+                String receiverKeysJson = gson.toJson(keys);
+
+                byte[] jwe = Crypto.packMessage(wallet, receiverKeysJson, senderVk, buffer).get();
+                WritableArray result = new WritableNativeArray();
+                for (byte b : jwe) {
+                    result.pushInt(b);
+                }
+                promise.resolve(result);
+            }
+
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
     }
 
-    private class cryptoSign extends AsyncTask {
-        Promise promise = null;
+    @ReactMethod
+    public void unpackMessage(String walletConfig, String walletCredentials, ReadableArray jwe, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                byte[] buffer = readableArrayToBuffer(jwe);
+                byte[] res = Crypto.unpackMessage(wallet, buffer).get();
 
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[4];
-
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    ReadableArray messageRaw = (ReadableArray) objects[3];
-                    byte[] messageBuf = readableArrayToBuffer(messageRaw);
-                    byte[] signature = Crypto.cryptoSign(wallet, objects[2].toString(), messageBuf).get();
-                    WritableArray result = new WritableNativeArray();
-                    for (byte b : signature) {
-                        result.pushInt(b);
-                    }
-                    promise.resolve(result);
+                WritableArray result = new WritableNativeArray();
+                for (byte b : res) {
+                    result.pushInt(b);
                 }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
+                promise.resolve(result);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void cryptoSign(String walletConfig, String walletCredentials, String signerVk, ReadableArray messageRaw,
+                           Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                byte[] messageBuf = readableArrayToBuffer(messageRaw);
+                byte[] signature = Crypto.cryptoSign(wallet, signerVk, messageBuf).get();
+                WritableArray result = new WritableNativeArray();
+                for (byte b : signature) {
+                    result.pushInt(b);
                 }
-                return promise;
+                promise.resolve(result);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void cryptoVerify(String walletConfig, String walletCredentials, String signerVk, ReadableArray messageRaw,
+                             ReadableArray signatureRaw, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                byte[] messageBuf = readableArrayToBuffer(messageRaw);
+                byte[] sigBuf = readableArrayToBuffer(signatureRaw);
+                boolean valid = Crypto.cryptoVerify(signerVk, messageBuf, sigBuf).get();
+                promise.resolve(valid);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverCreateCredentialReq(String walletConfig, String walletCredentials, String proverDid,
+                                          String credentialOfferJson, String credentialDefJson, String masterSecret, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                AnoncredsResults.ProverCreateCredentialRequestResult credentialRequestResult = Anoncreds
+                        .proverCreateCredentialReq(wallet, proverDid, credentialOfferJson,
+                                credentialDefJson, masterSecret)
+                        .get();
+                WritableArray response = new WritableNativeArray();
+                response.pushString(credentialRequestResult.getCredentialRequestJson());
+                response.pushString(credentialRequestResult.getCredentialRequestMetadataJson());
+                promise.resolve(response);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverStoreCredential(String walletConfig, String walletCredentials, String credId,
+                                      String credReqMetadataJson, String credJson, String credDefJson, String revRegDefJson, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                String  newCredId = Anoncreds.proverStoreCredential(wallet, credId, credReqMetadataJson,
+                            credJson, credDefJson, revRegDefJson).get();
+                promise.resolve(newCredId);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void getRevocRegDefJson(String poolName, String poolConfig, String submitterDid, String revRegDefId, Promise promise) {
+        Pool pool = null;
+        try {
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            String revocRegDefJsonRequest = Ledger.buildGetRevocRegDefRequest(submitterDid, revRegDefId).get();
+            String revocRegDefJsonResponse = Ledger.submitRequest(pool, revocRegDefJsonRequest).get();
+            LedgerResults.ParseResponseResult responseResult = Ledger.parseGetRevocRegDefResponse(revocRegDefJsonResponse).get();
+            promise.resolve(responseResult.getObjectJson());
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
             }
         }
     }
 
     @ReactMethod
-    public void cryptoVerify(String configJson, String credentialsJson, String signerVk, ReadableArray messageRaw,
-            ReadableArray signatureRaw, Promise promise) {
-        new CryptoVerify().execute(configJson, credentialsJson, signerVk, messageRaw, signatureRaw, promise);
-    }
-
-    private class CryptoVerify extends AsyncTask {
-        Promise promise = null;
-
-        @Override
-        protected Object doInBackground(Object[] objects) {
-
-            promise = (Promise) objects[5];
-
-            Wallet wallet = null;
-            try {
-                wallet = openWallet(objects[0].toString(), objects[1].toString(), promise);
-                if (wallet != null) {
-                    ReadableArray messageRaw = (ReadableArray) objects[3];
-                    ReadableArray signatureRaw = (ReadableArray) objects[4];
-                    byte[] messageBuf = readableArrayToBuffer(messageRaw);
-                    byte[] sigBuf = readableArrayToBuffer(signatureRaw);
-                    boolean valid = Crypto.cryptoVerify(objects[2].toString(), messageBuf, sigBuf).get();
-                    promise.resolve(valid);
-                }
-            } catch (Exception e) {
-                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
-            } finally {
-                if (wallet != null) {
-                    closeWallet(wallet);
-                }
-                return promise;
+    public void getRevocRegsJson(String poolName, String poolConfig, String submitterDid, String revRegDefId, String timestamp, Promise promise) {
+        Pool pool = null;
+        try {
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            String revocRegsJsonRequest = Ledger.buildGetRevocRegRequest(submitterDid, revRegDefId, Long.parseLong(timestamp)).get();
+            String revocRegsJsonResponse = Ledger.submitRequest(pool, revocRegsJsonRequest).get();
+            LedgerResults.ParseRegistryResponseResult responseResult = Ledger.parseGetRevocRegResponse(revocRegsJsonResponse).get();
+            promise.resolve(responseResult.getObjectJson());
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
             }
         }
+    }
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
+    @ReactMethod
+    public void verifierVerifyProof(String proofRequest, String proof,
+                                    String schemas, String credentialDefs, String revRegDefs, String revRegsObj, Promise promise) {
+        try {
+            Boolean verification = Anoncreds.verifierVerifyProof(proofRequest, proof, schemas, credentialDefs, revRegDefs, revRegsObj).get();
+            promise.resolve(verification);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverGetCredentials(String walletConfig, String walletCredentials, String filter, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                String credentials = Anoncreds.proverGetCredentials(wallet, filter).get();
+                promise.resolve(credentials);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverGetCredential(String walletConfig, String walletCredentials, String credId, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                String credential = Anoncreds.proverGetCredential(wallet, credId).get();
+                promise.resolve(credential);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void getCredDef(String submitterDid, String id, String poolName, String poolConfig, Promise promise) {
+        Pool pool = null;
+        try {
+            String credDefRequest = Ledger.buildGetCredDefRequest(submitterDid, id).get();
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            if (pool != null) {
+                String credDefResponse = Ledger.submitRequest(pool,  credDefRequest).get();
+
+                LedgerResults.ParseResponseResult responseResult = Ledger.parseGetCredDefResponse(credDefResponse).get();
+                promise.resolve(responseResult.getObjectJson());
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
+            }
+        }
+    }
+
+    @ReactMethod
+    public void getRevocRegDef(String submitterDid, String id, String poolName, String poolConfig, Promise promise) {
+        Pool pool = null;
+        try {
+            String revocRegDefRequest = Ledger.buildGetRevocRegDefRequest(submitterDid, id).get();
+
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            if (pool != null) {
+                String revocRegDefResponse = Ledger.submitRequest(pool, revocRegDefRequest).get();
+                LedgerResults.ParseResponseResult responseResult = Ledger.parseGetRevocRegDefResponse(revocRegDefResponse).get();
+                promise.resolve(responseResult.getObjectJson());
+
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
+            }
+        }
+    }
+
+    private JSONObject getCredDefJson(Pool pool, String submitterDid, String credDefId) throws Exception {
+        JSONObject parseCredObj = new JSONObject();
+        try {
+            String credDefJsonRequest = Ledger.buildGetCredDefRequest(submitterDid, credDefId).get();
+            String credDefJsonResponse = Ledger.submitRequest(pool, credDefJsonRequest).get();
+            LedgerResults.ParseResponseResult responseResult = Ledger.parseGetCredDefResponse(credDefJsonResponse).get();
+
+            parseCredObj = new JSONObject(responseResult.getObjectJson());
+
+        } catch (Exception e) {
+            throw new Exception(e.toString());
+        }
+        return parseCredObj;
+    }
+
+    @ReactMethod
+    public void getSchemasJson(String poolName, String poolConfig, String submitterDid, String schemaId, Promise promise) {
+        Pool pool = null;
+        try {
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            String schemaJsonRequest = Ledger.buildGetSchemaRequest(submitterDid, schemaId).get();
+            String schemaJsonResponse = Ledger.submitRequest(pool, schemaJsonRequest).get();
+            LedgerResults.ParseResponseResult responseResult = Ledger.parseGetSchemaResponse(schemaJsonResponse).get();
+
+            promise.resolve(responseResult.getObjectJson());
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
+            }
+        }
+    }
+
+    @ReactMethod
+    public void proverCreateProof(String walletConfig, String walletCredentials, String proofRequest,
+                                  String requestedCredentials, String masterSecret, String schemas, String credentialDefs, String revocObject, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                String cred_proof = Anoncreds.proverCreateProof(wallet, proofRequest,
+                        String.valueOf(requestedCredentials), masterSecret, String.valueOf(schemas),
+                        String.valueOf(credentialDefs), String.valueOf(revocObject)).get();
+                promise.resolve(cred_proof);
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverSearchCredentialsForProofReq(String proofRequest, Promise promise) {
+        try {
+            int searchHandle = credentialSearchIterator++;
+            Wallet wallet = walletMap.get(1);
+            CredentialsSearchForProofReq search = CredentialsSearchForProofReq.open(wallet, proofRequest, "{}").get();
+            credentialSearchMap.put(searchHandle, search);
+            promise.resolve(searchHandle);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverFetchCredentialsForProofReq(int searchHandle, String itemReferent, int count, Promise promise) {
+        try {
+            CredentialsSearchForProofReq search = credentialSearchMap.get(searchHandle);
+            String recordsJson = search.fetchNextCredentials(itemReferent, count).get();
+            promise.resolve(recordsJson);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void proverCloseCredentialsSearchForProofReq(int searchHandle, Promise promise) {
+        try {
+            CredentialsSearchForProofReq search = credentialSearchMap.get(searchHandle);
+            search.close();
+            credentialSearchMap.remove(searchHandle);
+            promise.resolve(null);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void getSchema(String submitterDid, String schemaId, String poolName, String poolConfig, Promise promise) {
+        Pool pool = null;
+        try {
+            String schemaJsonRequest = Ledger.buildGetSchemaRequest(submitterDid, schemaId).get();
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            if (pool != null) {
+                String schemaJsonResponse = Ledger.submitRequest(pool, schemaJsonRequest).get();
+                LedgerResults.ParseResponseResult responseResult = Ledger.parseGetSchemaResponse(schemaJsonResponse).get();
+                promise.resolve(responseResult.getObjectJson());
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
+            }
+        }
+    }
+
+    private JSONObject getSchemaJson(Pool pool, String submitterDid, String schemaId) throws Exception {
+        JSONObject parseSchemaObj = new JSONObject();
+        try {
+            String schemaJsonRequest = Ledger.buildGetSchemaRequest(submitterDid, schemaId).get();
+            String schemaJsonResponse = Ledger.submitRequest(pool, schemaJsonRequest).get();
+            LedgerResults.ParseResponseResult responseResult = Ledger.parseGetSchemaResponse(schemaJsonResponse).get();
+
+            parseSchemaObj = new JSONObject(responseResult.getObjectJson());
+
+        } catch (Exception e) {
+            throw new Exception(e.toString());
+        }
+        return parseSchemaObj;
+    }
+
+    @ReactMethod
+    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId, String credRevId,Promise promise)
+            throws Exception {
+        Pool pool = null;
+        JSONObject revocState = new JSONObject();
+
+        try {
+            pool = openPoolLedger(poolName, poolConfig, promise);
+            if (pool != null) {
+                String revocRegDeltaRequest = Ledger
+                        .buildGetRevocRegDeltaRequest(submitterDid, revRegId, 0, System.currentTimeMillis() / 1000).get();
+                String revocRegDeltaResponse = Ledger.submitRequest(pool, revocRegDeltaRequest).get();
+                LedgerResults.ParseRegistryResponseResult revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(revocRegDeltaResponse)
+                        .get();
+
+                String revocRegDefRequest = Ledger.buildGetRevocRegDefRequest(submitterDid, revRegId).get();
+                String revocRegDefReponse = Ledger.submitRequest(pool, revocRegDefRequest).get();
+                LedgerResults.ParseResponseResult revocRegDefJson = Ledger
+                        .parseGetRevocRegDefResponse(revocRegDefReponse).get();
+
+                String rootDir = getCurrentActivity().getExternalFilesDir(null).toString();
+
+                String filePath = rootDir + "/revoc/";
+
+                JSONObject revRegDefObject = new JSONObject(revocRegDefJson.getObjectJson());
+                String fileURL = revRegDefObject.getJSONObject("value").getString("tailsLocation");
+                String fileName = revRegDefObject.getJSONObject("value").getString("tailsHash");
+
+                int count;
+                File revocFilePath = new File(filePath);
+                if (!revocFilePath.exists()) {
+                    revocFilePath.mkdir();
+                }
+
+                File revocFile = new File(filePath + "/" + fileName);
+                if (!revocFile.exists()) {
+                    revocFile.createNewFile();
+                    URL url = new URL(fileURL);
+
+                    URLConnection connection = url.openConnection();
+                    connection.connect();
+                    InputStream input = new BufferedInputStream(url.openStream(), 8192);
+                    OutputStream output = new FileOutputStream(revocFile);
+                    byte[] data = new byte[1024];
+                    long total = 0;
+                    while ((count = input.read(data)) != -1) {
+                        total += count;
+                        output.write(data, 0, count);
+                    }
+                    output.flush();
+                    output.close();
+                    input.close();
+                }
+
+                String tailsWriterConfig = new JSONObject().put("base_dir", filePath).put("uri_pattern", "").toString();
+                BlobStorageReader blobStorageReaderCfg = BlobStorageReader.openReader("default", tailsWriterConfig).get();
+
+                JSONObject revStateJson = new JSONObject(Anoncreds.createRevocationState(
+                        blobStorageReaderCfg.getBlobStorageReaderHandle(), revocRegDefJson.getObjectJson(),
+                        revRegDeltaJson.getObjectJson(), revRegDeltaJson.getTimestamp(), credRevId).get());
+
+                revocState.put(String.valueOf(revRegDeltaJson.getTimestamp()), revStateJson);
+
+                promise.resolve(revocState.toString());
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            if (pool != null) {
+                closePoolLedger(pool);
+            }
         }
     }
 
@@ -589,10 +752,9 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         return buffer;
     }
 
-
     class IndySdkRejectResponse {
-        private String code;
-        private String message;
+        private final String code;
+        private final String message;
 
         private IndySdkRejectResponse(Throwable e) {
             String code = "0";
