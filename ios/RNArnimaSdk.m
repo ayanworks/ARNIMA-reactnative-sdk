@@ -29,7 +29,7 @@ RCT_EXPORT_METHOD(openInitWallet: (NSString *)config
     [[IndyWallet sharedInstance]openWalletWithConfig:config credentials:walletCredentials completion:^(NSError *error, IndyHandle walletHandle) {
         if(error.code > 1) {
             [self rejectResult:error reject:reject];
-
+            
         }else {
             self->WalletHandleNumber = walletHandle;
             resolve(@YES);
@@ -66,10 +66,105 @@ RCT_EXPORT_METHOD(createWallet:
     [[IndyWallet sharedInstance] createWalletWithConfig:config credentials:walletCredentials completion:^(NSError *error) {
         if(error.code > 1) {
             [self rejectResult:error reject:reject];
-
         }
         else {
             resolve(@"Wallet created successfully");
+        }
+    }];
+}
+
+RCT_EXPORT_METHOD(exportWallet:
+                  (NSString *)walletConfig
+                  :(NSString *)walletCredentials
+                  :(NSString *)config
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject) {
+    
+    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+        if (walletHandle > 0) {
+            [[IndyWallet sharedInstance] exportWalletWithHandle:walletHandle exportConfigJson:config completion:^(NSError *errorWhileExportWallet) {
+                if(errorWhileExportWallet.code > 1) {
+                    [self rejectResult:errorWhileExportWallet reject:reject];
+                }
+                else {
+                    resolve(@"true");
+                }
+            }];
+        }
+    }];
+}
+
+RCT_EXPORT_METHOD(importWallet:
+                  (NSString *)walletConfig
+                  :(NSString *)walletCredentials
+                  :(NSString *)config
+                  :(NSString *)types
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject){
+    NSData *data = [types dataUsingEncoding:NSUTF8StringEncoding];
+    id jsonData = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+    [[IndyWallet sharedInstance] importWalletWithConfig:walletConfig credentials:walletCredentials importConfigJson:config completion:^(NSError *errorWhileImportWallet) {
+        if(errorWhileImportWallet.code > 1) {
+            [self rejectResult:errorWhileImportWallet reject:reject];
+        }
+        else {
+            [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+                if (walletHandle > 0) {
+                    NSMutableArray *newArray = [[NSMutableArray alloc] init];
+                    int loopValue = 0;
+                    NSUInteger jsonDataLength = [jsonData count];
+                    if (jsonDataLength > 0) {
+                        for (NSDictionary *data in jsonData) {
+                            loopValue = loopValue + 1;
+                            [IndyNonSecrets openSearchInWallet:walletHandle type:[data valueForKey:@"type"] queryJson:@"{}" optionsJson:@"{\"retrieveTags\":true,\"retrieveType \":true, \"retrieveType\": true, \"retrieveTotalCount\": true }" completion:^(NSError *errorWhileOpenSearchWallet, IndyHandle searchHandle) {
+                                if(errorWhileOpenSearchWallet.code > 1) {
+                                    [self rejectResult:errorWhileOpenSearchWallet reject:reject];
+                                }
+                                else {
+                                    [IndyNonSecrets fetchNextRecordsFromSearch:searchHandle walletHandle:walletHandle count:@(100) completion:^(NSError *errorWhileFetchNextRecord, NSString *recordsJson) {
+                                        if(errorWhileFetchNextRecord.code > 1) {
+                                            [self rejectResult:errorWhileFetchNextRecord reject:reject];
+                                        }
+                                        else {
+                                            
+                                            dispatch_semaphore_t convertSemaphore = dispatch_semaphore_create(0);
+                                            NSData *recordsJsonData = [recordsJson dataUsingEncoding:NSUTF8StringEncoding];
+                                            id records = [NSJSONSerialization JSONObjectWithData:recordsJsonData options:0 error:nil];
+                                            dispatch_semaphore_signal(convertSemaphore);
+                                            
+                                            dispatch_semaphore_wait(convertSemaphore, DISPATCH_TIME_FOREVER);
+                                            
+                                            if([[records valueForKey:@"totalCount"] intValue] > 0) {
+                                                NSArray *newRecords = [records valueForKey:@"records"];
+                                                if ([newRecords count] > 0) {
+                                                    for (id dataToPush in newRecords) {
+                                                        [newArray addObject:dataToPush];
+                                                        [IndyNonSecrets deleteRecordInWallet:walletHandle type:[data valueForKey:@"type"] id:[dataToPush valueForKey:@"id"] completion:^(NSError *errorWhileDeleteRecord) {
+                                                            if(errorWhileDeleteRecord.code > 1) {
+                                                                [self rejectResult:errorWhileDeleteRecord reject:reject];
+                                                            } else {
+                                                                NSLog(@"in else of delete");
+                                                            }
+                                                        }];
+                                                    }
+                                                    
+                                                } else {
+                                                    resolve(newRecords);
+                                                }
+                                            }
+                                            if (loopValue >= jsonDataLength) {
+                                                resolve(newArray);
+                                            }
+                                        }
+                                    }];
+                                }
+                            }];
+                        }
+                    } else {
+                        resolve(newArray);
+                    }
+                }
+            }];
         }
     }];
 }
@@ -87,7 +182,7 @@ RCT_EXPORT_METHOD(createAndStoreMyDid:
             [IndyDid createAndStoreMyDid:walletConfig walletHandle:walletHandle completion:^(NSError *errorWhileCreateDid, NSString *did, NSString *verkey) {
                 if(errorWhileCreateDid.code > 1) {
                     [self rejectResult:errorWhileCreateDid reject:reject];
-
+                    
                 }
                 else {
                     if(createMasterSecret == true) {
@@ -130,7 +225,6 @@ RCT_EXPORT_METHOD(addWalletRecord:
             [IndyNonSecrets addRecordInWallet:walletHandle type:Type id:Id value:value tagsJson:tags completion:^(NSError *errorWhileAddRecord) {
                 if(errorWhileAddRecord.code > 1) {
                     [self rejectResult:errorWhileAddRecord reject:reject];
-
                 }
                 else {
                     resolve(@"true");
@@ -600,7 +694,6 @@ RCT_EXPORT_METHOD(getRevocRegDefJson
         }
     }];
     dispatch_semaphore_wait(submitReqSchemaSemaphore, DISPATCH_TIME_FOREVER);
-        
     dispatch_semaphore_t parseSchemaResponseSemaphore = dispatch_semaphore_create(0);
     [IndyLedger parseGetSchemaResponse:requestResultJSONSchema completion:^(NSError *errorInParseSchemaResponse, NSString *schemaId, NSString *generatedSchemaJson) {
         if(errorInParseSchemaResponse.code > 1) {
@@ -768,7 +861,6 @@ RCT_EXPORT_METHOD(proverCloseCredentialsSearchForProofReq
     [IndyAnoncreds proverCloseCredentialsSearchForProofReqWithHandle:value completion:^(NSError *error) {
         
         if(error.code > 1) {
-           // DIT error.localizedDescription, nil);
             [self rejectResult:error reject:reject];
         }
         else {
@@ -789,7 +881,6 @@ RCT_EXPORT_METHOD(proverGetCredential
         if (walletHandle > 0) {
             [IndyAnoncreds proverGetCredentialWithId:credId walletHandle:walletHandle completion:^(NSError *error, NSString *credentialJSON) {
                 if(error.code > 1) {
-//                    DIT error.localizedDescription, nil);
                     [self rejectResult:error reject:reject];
                 }
                 else {
@@ -814,7 +905,6 @@ RCT_EXPORT_METHOD(getSchemasJson
     dispatch_semaphore_t openPoolSemaphore = dispatch_semaphore_create(0);
     [IndyPool openPoolLedgerWithName:poolName poolConfig:nil completion:^(NSError *errorOpenPool, IndyHandle generatedPoolHandle) {
         if(errorOpenPool.code > 1) {
-            //DIT errorOpenOpen.localizedDescription, nil);
             [self rejectResult:errorOpenPool reject:reject];
         }
         else {
@@ -832,7 +922,6 @@ RCT_EXPORT_METHOD(getSchemasJson
     [IndyLedger buildGetSchemaRequestWithSubmitterDid:submitterDid id:schemaId completion:^(NSError *errorInBuildGetSchemaRequest, NSString *generatedRequestJSON) {
         if(errorInBuildGetSchemaRequest.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                //DIT errorInBuildGetSchemaRequest.localizedDescription, nil);
                 [self rejectResult:errorInBuildGetSchemaRequest reject:reject];
             }];
         }
@@ -852,7 +941,6 @@ RCT_EXPORT_METHOD(getSchemasJson
     [IndyLedger submitRequest:requestJSONSchema poolHandle:poolHandle completion:^(NSError *errorInSubmitRequest, NSString *generatedRequestResultJSON) {
         if(errorInSubmitRequest.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-              //  DIT errorInSubmitRequest.localizedDescription, nil);
                 [self rejectResult:errorInSubmitRequest reject:reject];
             }];
         }
@@ -917,7 +1005,9 @@ RCT_EXPORT_METHOD(getCredDef:
                         else {
                             [IndyLedger parseGetCredDefResponse:requestResultJSON completion:^(NSError *errorWhileParseCredDefResponse, NSString *credDefId, NSString *credDefJson) {
                                 if(errorWhileParseCredDefResponse.code > 1) {
-                                    [self rejectResult:errorWhileParseCredDefResponse reject:reject];
+                                    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
+                                        [self rejectResult:errorWhileParseCredDefResponse reject:reject];                                    }];
+                                    
                                 }
                                 else {
                                     [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
@@ -950,7 +1040,6 @@ RCT_EXPORT_METHOD(createRevocationStateObject
                   reject:(RCTPromiseRejectBlock)reject) {
     
     __block IndyHandle poolHandle;
-    __block NSMutableDictionary *objectPR = [[NSMutableDictionary alloc] init];
     
     dispatch_semaphore_t openPoolSemaphore = dispatch_semaphore_create(0);
     [IndyPool openPoolLedgerWithName:poolName poolConfig:nil completion:^(NSError *errorOpenPool, IndyHandle generatedPoolHandle) {
@@ -974,7 +1063,6 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     [IndyLedger buildGetRevocRegDeltaRequestWithSubmitterDid:submitterDid revocRegDefId:revRegId from:@(0) to:timeStampNumber completion:^(NSError *errorWhileRevRegDelRequest, NSString *generatedRequestJSON) {
         if(errorWhileRevRegDelRequest.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                //DIT errorWhileRevRegDelRequest.localizedDescription, nil);
                 [self rejectResult:errorWhileRevRegDelRequest reject:reject];
             }];
         }
@@ -991,7 +1079,6 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     [IndyLedger submitRequest:requestJSONRevDelta poolHandle:poolHandle completion:^(NSError *errorSubmitRevRegDeltaRequest, NSString *generatedRequestResultJSON) {
         if(errorSubmitRevRegDeltaRequest.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-               // DIT errorSubmitRevRegDeltaRequest.localizedDescription, nil);
                 [self rejectResult:errorSubmitRevRegDeltaRequest reject:reject];
             }];
         }
@@ -1005,29 +1092,37 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     
     __block NSString *revocRegDeltaJSON = [[NSString alloc] init];
     __block NSNumber *timeStamp = [[NSNumber alloc] init];
-    dispatch_semaphore_t parsegetRevSemaphore = dispatch_semaphore_create(0);
+    
+    dispatch_semaphore_t parseRevocRegDeltaSimaphore = dispatch_semaphore_create(0);
+    
+    __block NSString *returnCall = [[NSString alloc] init];
+    
     [IndyLedger parseGetRevocRegDeltaResponse:requestResultJSONRevDelta completion:^(NSError *errorWhileParseRevRegDelResponse, NSString *revocRegDefId, NSString *generatedRevocRegDeltaJson, NSNumber *generatedTimestamp) {
         if(errorWhileParseRevRegDelResponse.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-               // DIT errorWhileParseRevRegDelResponse.localizedDescription, nil);
+                dispatch_semaphore_signal(parseRevocRegDeltaSimaphore);
+                returnCall = @"YES";
                 [self rejectResult:errorWhileParseRevRegDelResponse reject:reject];
             }];
         }
         else {
             timeStamp = generatedTimestamp;
             revocRegDeltaJSON = generatedRevocRegDeltaJson;
-            dispatch_semaphore_signal(parsegetRevSemaphore);
+            dispatch_semaphore_signal(parseRevocRegDeltaSimaphore);
         }
     }];
-    dispatch_semaphore_wait(parsegetRevSemaphore, DISPATCH_TIME_FOREVER);
+    dispatch_semaphore_wait(parseRevocRegDeltaSimaphore, DISPATCH_TIME_FOREVER);
     
+    
+    if ([returnCall  isEqual: @"YES"]) {
+        return;
+    }
     
     __block NSString *requestJSONRevDef = [[NSString alloc] init];
     dispatch_semaphore_t buildRevDefSemaphore = dispatch_semaphore_create(0);
     [IndyLedger buildGetRevocRegDefRequestWithSubmitterDid:submitterDid id:revRegId completion:^(NSError *errorWhileRevocRegDefRequest, NSString *generatedRequestJSON) {
         if(errorWhileRevocRegDefRequest.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-               // DIT errorWhileRevocRegDefRequest.localizedDescription, nil);
                 [self rejectResult:errorWhileRevocRegDefRequest reject:reject];
             }];
         }
@@ -1038,6 +1133,9 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     }];
     dispatch_semaphore_wait(buildRevDefSemaphore, DISPATCH_TIME_FOREVER);
     
+    if ([returnCall  isEqual: @"YES"]) {
+        return;
+    }
     
     __block NSString *requestResultJSONRevDef = [[NSString alloc] init];
     dispatch_semaphore_t submitReqDefSemaphore = dispatch_semaphore_create(0);
@@ -1110,7 +1208,6 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     [IndyBlobStorage openReaderWithType:@"default" config:tailsWriterConfigString completion:^(NSError *errorWhileOpenReader, NSNumber *handle) {
         if(errorWhileOpenReader.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-               // DIT errorWhileOpenReader.localizedDescription, nil);
                 [self rejectResult:errorWhileOpenReader reject:reject];
             }];
         }
@@ -1126,7 +1223,7 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     [IndyAnoncreds createRevocationStateForCredRevID:credRevId timestamp:timeStamp revRegDefJSON:revocRegDefJSON revRegDeltaJSON:revocRegDeltaJSON blobStorageReaderHandle:storageHandle completion:^(NSError *errorWhileRevocState, NSString *generatedRevStateJSON) {
         if(errorWhileRevocState.code > 1) {
             [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-               // DIT errorWhileRevocState.localizedDescription, nil);
+                // DIT errorWhileRevocState.localizedDescription, nil);
                 [self rejectResult:errorWhileRevocState reject:reject];
             }];
         }
@@ -1144,7 +1241,7 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     NSString *timeStampString = [NSString stringWithFormat:@"%@", timeStamp];
     
     [newObject setObject:revocStateJsonDataObject forKey:timeStampString];
-        
+    
     NSData *revocObjectData = [NSJSONSerialization dataWithJSONObject:newObject
                                                               options:NSJSONWritingPrettyPrinted
                                                                 error:nil];

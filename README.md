@@ -4,7 +4,7 @@ This sdk is compatible to be used with both Android and iOS platforms. Please re
 
 ## Features
 
-#### Finished
+### Finished
 
 - ✅ [Issue Credential Protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0036-issue-credential/README.md)
 - ✅ [Present Proof Protocol](https://github.com/hyperledger/aries-rfcs/blob/master/features/0037-present-proof/README.md)
@@ -25,28 +25,28 @@ Currently, SDK supports our custom build mediator agent and we are planning to o
 
 - The **node 10.18.1** (To check, nvm ls) is required to install mobile agent specific dependencies like realm
 
-1.  Install nvm
+1. Install nvm
 
-```
+```bash
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.34.0/install.sh | bash
 ```
 
 2. Restart the terminal
 3. Confirm it's been installed with the following command:
 
-```
+```bash
 nvm --version
 ```
 
 4. Install node 10 using nvm
 
-```
+```bash
 nvm install 10.18.1
 ```
 
 5. Make sure you're using the right version of node
 
-```
+```bash
 nvm use 10.18.1
 ```
 
@@ -55,11 +55,11 @@ nvm use 10.18.1
 1. Clone this repository `git clone *****`
 2. `cd` into the repo `cd mobile-sdk`
 3. Create the `ARNIMA mobile agent package` by using the following command npm pack
-4. This will create a `*.tgz `file inside current directory.
-5. Copy the `*.tgz `file and paste it inside the root of your mobile wallet project.
+4. This will create a `*.tgz`file inside current directory.
+5. Copy the `*.tgz`file and paste it inside the root of your mobile wallet project.
 6. Inside your project of mobile app wallet's package.json, add this to the dependencies block:
 
-```
+```bash
 "react-native-arnima-sdk": "./<MOBILE_AGENT_PACKAGE>.tgz"
 ```
 
@@ -68,31 +68,31 @@ nvm use 10.18.1
 
 - **Realm**
 
-```
+```bash
 npm install realm
 ```
 
 - **buffer**
 
-```
+```bash
 npm install buffer
 ```
 
 - **Socket Client**
 
-```
+```bash
 npm install socket.io-client
 ```
 
 - **Base64Url**
 
-```
+```bash
 npm install base64url
 ```
 
 - **EventListener**
 
-```
+```bash
 npm i react-native-event-listeners
 ```
 
@@ -103,7 +103,7 @@ npm i react-native-event-listeners
 
 ```
 repositories {
-    maven { url 'https://repo.sovrin.org/repository/maven-public' }
+  maven { url 'https://repo.sovrin.org/repository/maven-public' }
 }
 ```
 
@@ -124,7 +124,7 @@ pod 'ArnimaSdk', :path => '../node_modules/react-native-arnima-sdk'
 ```
 
 4. Do `pod install`.
-5. You need to download and replace the file `Indy.framework` from Pods folder inside your Mobile app project from the following link (base on your xcode & swift version) Download from - https://drive.google.com/drive/folders/1_WJ3mEHqk5GHH9p5SI4bRKRXPwy5w_0e?usp=sharing, Replace at - <Your_Project>/ios/Pods/libindy/
+5. You need to download and replace the file `Indy.framework` from Pods folder inside your Mobile app project from the following link (base on your xcode & swift version) Download from - <https://drive.google.com/drive/folders/1_WJ3mEHqk5GHH9p5SI4bRKRXPwy5w_0e?usp=sharing>, Replace at - <Your_Project>/ios/Pods/libindy/
 
 ## React Native Compatibility
 
@@ -157,7 +157,7 @@ import ArnimaSDK from 'react-native-arnima-sdk'
 
 ## Methods
 
-### createWallet(config, credential, label) -> Array<String>
+### createWallet(config, credential, label) -> Array
 
 ---
 
@@ -167,7 +167,7 @@ This method is called after the user has set up their wallet name & passcode for
 
 ```
 {
-    id: <WALLET_NAME>
+  id: <WALLET_NAME>
 }
 ```
 
@@ -309,7 +309,7 @@ const response = await ArnimaSDK.createInvitation({})
 
 `didJson`: Json - Identity information as json if you don't have pass empty object - {}.
 
-```
+```json
 {
     "did": string, (optional;
             if not provided and cid param is false then the first 16 bit of the verkey will be used as a new DID;
@@ -342,7 +342,7 @@ const wallet = await ArnimaSDK.acceptInvitation({}, InvitationUrl)
 
 `Success`: true
 
-### getAllConnections() -> Array<Object>
+### getAllConnections() -> Array
 
 ---
 
@@ -431,7 +431,7 @@ const sdkDB = await ArnimaSDK.getWallet()
 }
 ```
 
-## openWallet() -> Boolean
+### openWallet() -> boolean
 
 ---
 
@@ -451,7 +451,49 @@ const sdkDB = await ArnimaSDK.openWallet()
 
 `Error`: false
 
-## sendCredentialProposal(connectionId,credentialProposal, schemaId, credDefId, issuerDid, comment) -> Boolean
+### importWallet(config, credentials, filePath, key) -> JSON
+
+---
+
+To import a wallet.
+
+`config`: WalletConfig
+`credentials`: WalletCredentials
+`filePath`: string
+`key`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await Arnima.importWallet(
+  walletName,
+  walletPassword,
+  walletFilePath,
+  hashedPassphrase
+)
+```
+
+**Returns:**
+
+`Success`:
+
+```
+ {
+  mediatorRecord: {
+   walletConfig: '{"id":string}',
+   label: string,
+   serviceEndpoint: string,
+   routingKey: string,
+   publicDid: string,
+   verKey: string,
+   masterSecretId: string
+  }
+ }
+```
+
+### sendCredentialProposal(connectionId,credentialProposal, schemaId, credDefId, issuerDid, comment) -> Boolean
 
 ---
 
@@ -485,7 +527,7 @@ const response = await ArnimaSDK.sendCredentialProposal(
 
 `Error`: false
 
-## acceptCredentialOffer(messageId, inboundMessage) -> Boolean
+### acceptCredentialOffer(messageId, inboundMessage) -> Boolean
 
 ---
 
@@ -531,32 +573,32 @@ const response = await Arnima.getAllActionMessagesByMessageId(messageId)
 
 ```
  {
-	message: {
-		'@type': string,
-		'@id': string,
-		'~thread': {},
-		comment: string,
-		credential_preview: {
-			'@type': string,
-			attributes: [{
-				name: string,
-				value: string
-			}]
-		},
-		'offers~attach': [{
-			'@id': string,
-			'mime-type': string,
-			data: {
-				base64: string
-			}
-		}]
-	},
-	recipient_verkey: string,
-	sender_verkey: string
+ message: {
+  '@type': string,
+  '@id': string,
+  '~thread': {},
+  comment: string,
+  credential_preview: {
+   '@type': string,
+   attributes: [{
+    name: string,
+    value: string
+   }]
+  },
+  'offers~attach': [{
+   '@id': string,
+   'mime-type': string,
+   data: {
+    base64: string
+   }
+  }]
+ },
+ recipient_verkey: string,
+ sender_verkey: string
 }
 ```
 
-### getAllCredential(filter) -> Array<Object>
+### getAllCredential(filter) -> Array
 
 ---
 
@@ -578,18 +620,18 @@ const response = await Arnima.getAllCredential(filter)
 
 ```
  [{
- 	referent: string,
- 	attrs: {
- 		name: string
- 	},
- 	schema_id: string,
- 	cred_def_id: string,
- 	rev_reg_id: string,
- 	cred_rev_id: string
+  referent: string,
+  attrs: {
+   name: string
+  },
+  schema_id: string,
+  cred_def_id: string,
+  rev_reg_id: string,
+  cred_rev_id: string
  }]
 ```
 
-## sendBasicMessage(message, connectionId) -> Boolean
+### sendBasicMessage(message, connectionId) -> Boolean
 
 ---
 
@@ -634,7 +676,7 @@ const response = await ArnimaSDK.createPool(poolName, poolConfig, defaultPool)
 
 `Success`: string
 
-### getAllPool() -> Array<Object>
+### getAllPool() -> Array
 
 ---
 
@@ -654,46 +696,46 @@ const response = await Arnima.getAllPool()
 
 ```
 [{
-		type: string,
-		id: string,
-		value: '{
-		"poolName": string,
-		"poolConfig": "{"
-		reqSignature ": {},
-		"txn": {
-			"data": {
-				"data": {
-					"alias": string,
-					"blskey": string,
-					"blskey_pop": string,
-					"client_ip": string,
-					"client_port": 9702,
-					"node_ip": string,
-					"node_port": 9701,
-					"services": [string]
-				},
-				"dest": string
-			},
-			"metadata": {
-				"from": string
-			},
-			"type": string
-		},
-		"txnMetadata": {
-			"seqNo": 1,
-			"txnId": string
-		},
-		"ver": string
-	}
-	"}',
-	tags: {
-		poolName: string,
-		isSelected: string
-	}
+  type: string,
+  id: string,
+  value: '{
+  "poolName": string,
+  "poolConfig": "{"
+  reqSignature ": {},
+  "txn": {
+   "data": {
+    "data": {
+     "alias": string,
+     "blskey": string,
+     "blskey_pop": string,
+     "client_ip": string,
+     "client_port": 9702,
+     "node_ip": string,
+     "node_port": 9701,
+     "services": [string]
+    },
+    "dest": string
+   },
+   "metadata": {
+    "from": string
+   },
+   "type": string
+  },
+  "txnMetadata": {
+   "seqNo": 1,
+   "txnId": string
+  },
+  "ver": string
+ }
+ "}',
+ tags: {
+  poolName: string,
+  isSelected: string
+ }
 }]
 ```
 
-## selectDefaultPool(poolName) -> Boolean
+### selectDefaultPool(poolName) -> Boolean
 
 ---
 
@@ -713,9 +755,7 @@ const sdkDB = await ArnimaSDK.selectDefaultPool(poolName)
 
 `Success`: true
 
-###
-
-IssueCredentialByConnectionId(connectionId) -> Array<Object>
+### IssueCredentialByConnectionId(connectionId) -> Array
 
 ---
 
@@ -737,25 +777,48 @@ const response = await Arnima.getIssueCredentialByConnectionId(connectionId)
 
 ```
  [{
- 		type: string,
- 		id: string,
- 		value: '{
- 		"connectionId": string,
- 		"theirLabel": string,
- 		"schemaId": string,
- 		"credentialDefinitionId": string,
- 		"state": string,
- 		"createdAt": string,
- 		"updatedAt": string
- 	}',
- 	tags: {
- 		issueCredentialId: string,
- 		connectionId: string
- 	}
+   type: string,
+   id: string,
+   value: '{
+   "connectionId": string,
+   "theirLabel": string,
+   "schemaId": string,
+   "credentialDefinitionId": string,
+   "state": string,
+   "createdAt": string,
+   "updatedAt": string
+  }',
+  tags: {
+   issueCredentialId: string,
+   connectionId: string
+  }
  }]
 ```
 
-## sendProof(messageId,inboundMessage, revealAttributes) -> Boolean
+### exportWallet(filePath, key) -> Boolean
+
+---
+
+To export a wallet.
+
+`filePath`: string
+`key`: string
+
+**Example:**
+
+```ts
+import ArnimaSDK from 'react-native-arnima-sdk'
+
+const response = await ArnimaSDK.exportWallet(filePath, key)
+```
+
+**Returns:**
+
+`Success`: true
+
+`Error`: false
+
+### sendProof(messageId,inboundMessage, revealAttributes) -> Boolean
 
 ---
 
@@ -783,7 +846,7 @@ const response = await ArnimaSDK.sendProof(
 
 `Error`: false
 
-## verifyProof(messageId, inboundMessage) -> Boolean
+### verifyProof(messageId, inboundMessage) -> Boolean
 
 ---
 
@@ -806,7 +869,7 @@ const response = await ArnimaSDK.verifyProof(messageId, inboundMessage)
 
 `Error`: false
 
-### getPresentationByConnectionId(connectionId) -> Array<Object>
+### getPresentationByConnectionId(connectionId) -> Array
 
 ---
 
@@ -828,42 +891,42 @@ const response = await Arnima.getPresentationByConnectionId(connectionId)
 
 ```
 [{
-		type: string,
-		id: string,
-		value: '{
-		"connectionId": string,
-		"theirLabel": string,
-		"threadId": string,
-		"presentationRequest": {
-			"name": string,
-			"requested_predicates": {},
-			"requested_attributes": {
-				"additionalProp1": {
-					"name": string,
-					"non_revoked": {
-						"to": long
-					},
-					"restrictions": [{
-						"cred_def_id": string
-					}]
-				}
-			},
-			"version": string,
-			"nonce": string
-		},
-		"state": string,
-		"updatedAt": string,
-		"createdAt": string
-	}',
-	tags: {
-		connectionId: string,
-		messageId: string,
-		presentationId: string
-	}
+  type: string,
+  id: string,
+  value: '{
+  "connectionId": string,
+  "theirLabel": string,
+  "threadId": string,
+  "presentationRequest": {
+   "name": string,
+   "requested_predicates": {},
+   "requested_attributes": {
+    "additionalProp1": {
+     "name": string,
+     "non_revoked": {
+      "to": long
+     },
+     "restrictions": [{
+      "cred_def_id": string
+     }]
+    }
+   },
+   "version": string,
+   "nonce": string
+  },
+  "state": string,
+  "updatedAt": string,
+  "createdAt": string
+ }',
+ tags: {
+  connectionId: string,
+  messageId: string,
+  presentationId: string
+ }
 }]
 ```
 
-### getConnectionRecord(query) -> Array<Object>
+### getConnectionRecord(query) -> Array
 
 ---
 
@@ -885,45 +948,44 @@ const response = await Arnima.getConnectionRecord(query)
 
 ```
 [{
-		type: string,
-		id: string,
-		value: '{
-		"didDoc": {
-			"@context": string,
-			"id": string,
-			"publicKey": [{
-				"id": string,
-				"type": string,
-				"controller": string,
-				"publicKeyBase58": string
-			}],
-			"authentication": [{
-				"type": string,
-				"publicKey": string
-			}],
-			"service": [{
-				"id": string,
-				"type": string,
-				"priority": int,
-				"serviceEndpoint": string,
-				"recipientKeys": [string],
-				"routingKeys": [string]
-			}]
-		},
-		"verkey": string,
-		"alias": {},
-		"state": string,
-		"createdAt": string,
-		"updatedAt": string
-	}',
-	tags: {
-		connectionId: string
-	}
+  type: string,
+  id: string,
+  value: '{
+  "didDoc": {
+   "@context": string,
+   "id": string,
+   "publicKey": [{
+    "id": string,
+    "type": string,
+    "controller": string,
+    "publicKeyBase58": string
+   }],
+   "authentication": [{
+    "type": string,
+    "publicKey": string
+   }],
+   "service": [{
+    "id": string,
+    "type": string,
+    "priority": int,
+    "serviceEndpoint": string,
+    "recipientKeys": [string],
+    "routingKeys": [string]
+   }]
+  },
+  "verkey": string,
+  "alias": {},
+  "state": string,
+  "createdAt": string,
+  "updatedAt": string
+ }',
+ tags: {
+  connectionId: string
+ }
 }]
 ```
 
-### getPresentationRecord(query) -> Array<Object>
-
+### getPresentationRecord(query) -> Array
 ---
 
 To get connection record.
@@ -944,71 +1006,71 @@ const response = await Arnima.getPresentationRecord(query)
 
 ```
 [{
-		"type": string,
-		"id": string,
-		"value": '{
-		"connectionId": string,
-		"theirLabel": string,
-		"threadId": string ",
-		"presentationRequest": {
-			"name": string,
-			"requested_predicates": {},
-			"requested_attributes": {
-				"additionalProp1": {
-					"name": string,
-					"non_revoked": {
-						"to": long
-					},
-					"restrictions": [{
-						"cred_def_id": string
-					}]
-				}
-			},
-			"version": string,
-			"nonce": string
-		},
-		"presentation": {
-			"proof": {
-				"proofs": [{
-					"primary_proof": {
-						"eq_proof": {
-							"revealed_attrs": {
-								"name": string
-							},
-							"a_prime": string,
-							"v": string,
-							"m": {
-								"master_secret": string
-							},
-							"m2": string
-						},
-						"ge_proofs": []
-					},
-					"non_revoc_proof": string
-				}],
-				"aggregated_proof": {
-					"c_hash": string,
-					"c_list": [
-						[int, int, int....]
-					]
-				}
-			},
-			"requested_proof": {
-				"revealed_attrs": {
-					"additionalProp1": {
-						sub_proof_index ":int,
-						"raw": string,
-						"encoded": string
+  "type": string,
+  "id": string,
+  "value": '{
+  "connectionId": string,
+  "theirLabel": string,
+  "threadId": string ",
+  "presentationRequest": {
+   "name": string,
+   "requested_predicates": {},
+   "requested_attributes": {
+    "additionalProp1": {
+     "name": string,
+     "non_revoked": {
+      "to": long
+     },
+     "restrictions": [{
+      "cred_def_id": string
+     }]
+    }
+   },
+   "version": string,
+   "nonce": string
+  },
+  "presentation": {
+   "proof": {
+    "proofs": [{
+     "primary_proof": {
+      "eq_proof": {
+       "revealed_attrs": {
+        "name": string
+       },
+       "a_prime": string,
+       "v": string,
+       "m": {
+        "master_secret": string
+       },
+       "m2": string
+      },
+      "ge_proofs": []
+     },
+     "non_revoc_proof": string
+    }],
+    "aggregated_proof": {
+     "c_hash": string,
+     "c_list": [
+      [int, int, int....]
+     ]
+    }
+   },
+   "requested_proof": {
+    "revealed_attrs": {
+     "additionalProp1": {
+      sub_proof_index ":int,
+      "raw": string,
+      "encoded": string
 
-					}
-				}
-			}
-		}
-	}
+     }
+    }
+   }
+  }
+ }
 }]
 ```
 
-## sendPresentProofRequest(connectionId, proofRequest, comment) -> Boolean
+### sendPresentProofRequest(connectionId, proofRequest, comment) -> Boolean
 
 ---
 
@@ -1036,7 +1098,7 @@ const response = await ArnimaSDK.sendPresentProofRequest(
 
 `Error`: false
 
-## sendProposePresentation(connectionId, presentationProposal) -> Boolean
+### sendProposePresentation(connectionId, presentationProposal) -> Boolean
 
 ---
 
@@ -1102,7 +1164,7 @@ import ArnimaSDK from 'react-native-arnima-sdk'
 indy.socketListener()
 ```
 
-## Receive an event on your mobile app
+### Receive an event on your mobile app
 
 You can receive event in mobile application when connection is established. Receive the credentials and proof request.
 

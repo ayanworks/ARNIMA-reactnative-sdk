@@ -360,6 +360,69 @@ class Agent {
     await InboundMessageService.initializeSocket()
   }
 
+  exportWallet = async (filePath: string, key: string) => {
+    try {
+      const config = {
+        path: filePath,
+        key: key
+      }
+      const data = [];
+
+      await PoolService.deletePoolRecords(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials));
+
+      const response = await ArnimaSdk.exportWallet(
+        this.wallet.walletConfig,
+        this.wallet.walletCredentials,
+        JSON.stringify(config),
+      );
+
+      return response;
+    } catch (error) {
+      console.log('Agent - Export wallet error = ', error);
+      throw error;
+    }
+  }
+
+  importWallet = async (config: WalletConfig, credentials: WalletCredentials, filePath: string, key: string) => {
+    try {
+      const importConfig = {
+        path: filePath,
+        key: key
+      }
+
+      await ArnimaSdk.importWallet(
+        JSON.stringify(config),
+        JSON.stringify(credentials),
+        JSON.stringify(importConfig),
+        JSON.stringify([])
+      );
+
+      const mediatorRecord = await WalletStorageService.getWalletRecordFromQuery(config, credentials, RecordType.MediatorAgent, '{}');
+
+      DatabaseServices.storeWallet({
+        walletConfig: JSON.stringify(config),
+        walletCredentials: JSON.stringify(credentials),
+        label: mediatorRecord.label,
+        serviceEndpoint: mediatorRecord.serviceEndpoint,
+        routingKey: mediatorRecord.routingKey,
+        publicDid: mediatorRecord.publicDid,
+        verKey: mediatorRecord.verKey,
+        masterSecretId: mediatorRecord.masterSecretId,
+      });
+
+      const record = {
+        mediatorRecord,
+      }
+
+      this.wallet = await DatabaseServices.getWallet();
+
+      return record;
+    } catch (error) {
+      console.log('Agent - Import wallet error = ', error);
+      throw error;
+    }
+  }
+
 }
 
 export default new Agent();
