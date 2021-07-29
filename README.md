@@ -309,7 +309,7 @@ const response = await ArnimaSDK.createInvitation({})
 
 `didJson`: Json - Identity information as json if you don't have pass empty object - {}.
 
-```json
+```
 {
     "did": string, (optional;
             if not provided and cid param is false then the first 16 bit of the verkey will be used as a new DID;
