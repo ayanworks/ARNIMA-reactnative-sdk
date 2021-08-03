@@ -744,6 +744,53 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void exportWallet(String walletConfig, String walletCredentials, String config, Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                Wallet.exportWallet(wallet, config).get();
+                promise.resolve("true");
+            }
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void importWallet(String walletConfig, String walletCredentials, String config, String types, Promise promise) {
+        Wallet wallet = null;
+        JSONArray finalObj = new JSONArray();
+        try {
+            Wallet.importWallet(walletConfig, walletCredentials, config).get();
+            wallet = openWallet(walletConfig, walletCredentials, promise);
+            if (wallet != null) {
+                JSONArray typesArray = new JSONArray(types);
+                for (int i = 0; i < typesArray.length(); i++) {
+                    JSONObject j = typesArray.getJSONObject(i);
+
+                    WalletSearch search = WalletSearch.open(wallet, j.getString("type"), "{}", "{\"retrieveTags\":true,\"retrieveType \":true, \"retrieveType\": true, \"retrieveTotalCount\": true }")
+                            .get();
+                    String recordsJson = WalletSearch.searchFetchNextRecords(wallet, search, 100).get();
+                    JSONObject convert = new JSONObject(recordsJson);
+                    if (convert.getInt("totalCount") > 0) {
+                        JSONArray records = convert.getJSONArray("records");
+                        for (int z = 0; z < records.length(); z++) {
+                            finalObj.put(records.get(z));
+                            WalletRecord.delete(wallet, j.getString("type"), records.getJSONObject(z).getString("id"));
+                        }
+                    }
+                }
+            }
+            promise.resolve(finalObj.toString());
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
     private byte[] readableArrayToBuffer(ReadableArray arr) {
         byte[] buffer = new byte[arr.size()];
         for (int i = 0; i < arr.size(); i++) {

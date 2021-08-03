@@ -56,7 +56,6 @@ class InboundMessageHandler {
     this.socket.on("message", async (msg) => {
       let inboxId: string = '';
       if (msg.length > 0) {
-        console.log("\n\n\n\n\n Messages received from Mediator = ", msg.length);
         for await (let message of msg) {
           inboxId = inboxId + message.id + ","
 
@@ -64,14 +63,18 @@ class InboundMessageHandler {
             messageId: message.id + '',
             autoProcessed: JSON.stringify(true),
             isProcessed: JSON.stringify(false),
+            message: typeof message.message == 'string' ? message.message : JSON.stringify(message.message)
           }
-          await WalletStorageService.addWalletRecord(
-            JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials),
-            RecordType.SSIMessage,
-            message.id + '',
-            typeof message.message == 'string' ? message.message : JSON.stringify(message.message),
-            JSON.stringify(ssiMessageTags)
-          );
+          const walletRecords = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify({ 'messageId': message.id + '' }));
+          if (walletRecords.length === 0) {
+            await WalletStorageService.addWalletRecord(
+              JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials),
+              RecordType.SSIMessage,
+              message.id + '',
+              typeof message.message == 'string' ? message.message : JSON.stringify(message.message),
+              JSON.stringify(ssiMessageTags)
+            );
+          }
         }
         await this.sendAcknowledgementWithMessageId(msg.length, inboxId);
       }
