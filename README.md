@@ -1,6 +1,10 @@
-# ARNIMA SDK (Aries React-Native Mobile Agent)
+# ARNIMA SDK (Aries React-NatIve Mobile Agent)
+ARNIMA is an open-source React Native SDK for building Aries Mobile Agents. ARNIMA attempts to meet the needs / asks of many members from the Aries community, mainly React Native developers, who are looking forward to build cross-platform Aries Mobile Agents using React Native stack.
 
-This sdk is compatible to be used with both Android and iOS platforms. Please refer Installation section on how to set up the sdk and start running. This SDK is compliant and interoperable with the standards defined in the [Aries RFCs](https://github.com/hyperledger/aries-rfcs).
+This React-Native SDK is compatible to be used with both Android and iOS platforms. Please refer Installation section on how to set up the sdk and start running. This SDK is compliant and interoperable with the standards defined in the [Aries RFCs](https://github.com/hyperledger/aries-rfcs).
+
+# What's in the name
+Arnima (Hindi: अर्निमा, meaning "First ray of Sun") is a girl name in India whose zodiac sign is Aries 😉
 
 ## Features
 
