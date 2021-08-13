@@ -5,5 +5,6 @@
 
 export interface EventInterface {
     message?: string;
+    connectionId?: string;
     messageData?: string;
 }
