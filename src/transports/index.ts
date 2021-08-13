@@ -121,7 +121,6 @@ class InboundMessageHandler {
           const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord.msg);
           const message = JSON.parse(unpackMessageResponse.message);
 
-          console.log('Message Type = ', message['@type']);
           switch (message['@type']) {
             case MessageType.ConnectionResponse: {
               const isCompleted = await ConnectionService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse);
@@ -250,11 +249,13 @@ class InboundMessageHandler {
               break;
             }
             case MessageType.BasicMessage: {
-              const isCompleted = await BasicMessageService.save(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse, unpackMessageResponse.recipient_verkey);
-              if (isCompleted) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
+              const connection = await BasicMessageService.save(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse, unpackMessageResponse.recipient_verkey);
+              if (connection) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
+
 
               const event: EventInterface = {
-                message: 'You have received a message',
+                message: `You have received a message from ${connection.theirLabel}`,   
+                connectionId: connection.verkey,             
                 messageData: JSON.stringify({})
               }
               EventRegister.emit('SDKEvent', event);

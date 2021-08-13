@@ -9,17 +9,6 @@
 
 @implementation ArnimaSdk
 
-+(void)rejectMethod:(IndyHandle )pool
-             wallet:(IndyHandle )wallet
-             reject:(RCTPromiseRejectBlock)reject
-              error:(NSError *)error {
-    [IndyPool closePoolLedgerWithHandle:pool completion:^(NSError *error) {
-        NSString *errorCode = [@(error.code) stringValue];
-        reject(errorCode,error.userInfo[@"message"],error);
-    }];
-}
-
-
 RCT_EXPORT_MODULE()
 
 RCT_EXPORT_METHOD(openInitWallet: (NSString *)config
@@ -608,28 +597,25 @@ RCT_EXPORT_METHOD(getRevocRegDef:
         else {
             [IndyLedger buildGetRevocRegDefRequestWithSubmitterDid:submitterDid id:ID completion:^(NSError *errorWhileRevocRegDefRequest, NSString *requestJSON) {
                 if(errorWhileRevocRegDefRequest.code > 1) {
-                    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                        [self rejectResult:errorWhileRevocRegDefRequest reject:reject];
-                    }];;
+
+                    [self closePool:poolHandle :errorWhileRevocRegDefRequest :nil :NO resolve:resolve reject:reject];
                 }
                 else {
                     [IndyLedger submitRequest:requestJSON poolHandle:poolHandle completion:^(NSError *errorWhileSubmitRequest, NSString *requestResultJSON) {
                         if(errorWhileSubmitRequest.code > 1) {
-                            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                                [self rejectResult:errorWhileSubmitRequest reject:reject];
-                            }];
+
+                            [self closePool:poolHandle :errorWhileSubmitRequest :nil :NO resolve:resolve reject:reject];
+
                         }
                         else {
                             [IndyLedger parseGetRevocRegDefResponse:requestResultJSON completion:^(NSError *errorWhileParseRevRegDefResponse, NSString *revocRegDefId, NSString *revocRegDefJson) {
                                 if(errorWhileParseRevRegDefResponse.code > 1) {
-                                    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                                        [self rejectResult:errorWhileParseRevRegDefResponse reject:reject];
-                                    }];
+
+                                    [self closePool:poolHandle :errorWhileParseRevRegDefResponse :nil :NO resolve:resolve reject:reject];
+
                                 }
                                 else {
-                                    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                                        resolve(revocRegDefJson);
-                                    }];
+                                  [self closePool:poolHandle :nil :revocRegDefJson :YES resolve:resolve reject:reject];
                                 }
                             }];
                         }
@@ -666,9 +652,9 @@ RCT_EXPORT_METHOD(getRevocRegDefJson
     dispatch_semaphore_t buildRevDefSemaphore = dispatch_semaphore_create(0);
     [IndyLedger buildGetRevocRegDefRequestWithSubmitterDid:submitterDid id:revRegDefId completion:^(NSError *errorWhileRevocRegDefRequest, NSString *generatedRequestJSON) {
         if(errorWhileRevocRegDefRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorWhileRevocRegDefRequest reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorWhileRevocRegDefRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestJSONRevDef = generatedRequestJSON;
@@ -684,9 +670,9 @@ RCT_EXPORT_METHOD(getRevocRegDefJson
     
     [IndyLedger submitRequest:requestJSONRevDef poolHandle:poolHandle completion:^(NSError *errorInSubmitRequest, NSString *generatedRequestResultJSON) {
         if(errorInSubmitRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorInSubmitRequest reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorInSubmitRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestResultJSONSchema = generatedRequestResultJSON;
@@ -697,14 +683,12 @@ RCT_EXPORT_METHOD(getRevocRegDefJson
     dispatch_semaphore_t parseSchemaResponseSemaphore = dispatch_semaphore_create(0);
     [IndyLedger parseGetSchemaResponse:requestResultJSONSchema completion:^(NSError *errorInParseSchemaResponse, NSString *schemaId, NSString *generatedSchemaJson) {
         if(errorInParseSchemaResponse.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorInParseSchemaResponse reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorInParseSchemaResponse :nil :NO resolve:resolve reject:reject];
+
         }
         else {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                resolve(generatedSchemaJson);
-            }];
+            [self closePool:poolHandle :nil :generatedSchemaJson :YES resolve:resolve reject:reject];
             dispatch_semaphore_signal(parseSchemaResponseSemaphore);
         }
     }];
@@ -745,9 +729,9 @@ RCT_EXPORT_METHOD(getRevocRegsJson
     
     [IndyLedger buildGetRevocRegRequestWithSubmitterDid:submitterDid revocRegDefId:revRegDefId timestamp:timeStampValue completion:^(NSError *errorInBuildGetRevRegReqWithDid, NSString *requestJSON) {
         if(errorInBuildGetRevRegReqWithDid.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:error reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorInBuildGetRevRegReqWithDid :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             regrequestJSONRevDef = requestJSON;
@@ -760,9 +744,7 @@ RCT_EXPORT_METHOD(getRevocRegsJson
     dispatch_semaphore_t submitReqSchemaSemaphore = dispatch_semaphore_create(0);
     [IndyLedger submitRequest:regrequestJSONRevDef poolHandle:poolHandle completion:^(NSError *errorInSubmitRequest, NSString *generatedRequestResultJSON) {
         if(errorInSubmitRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorInSubmitRequest reject:reject];
-            }];
+            [self closePool:poolHandle :errorInSubmitRequest :nil :NO resolve:resolve reject:reject];
         }
         else {
             requestResultJSONSchema = generatedRequestResultJSON;
@@ -776,14 +758,12 @@ RCT_EXPORT_METHOD(getRevocRegsJson
     
     [IndyLedger parseGetRevocRegResponse:requestResultJSONSchema completion:^(NSError *errorInparseRevRegResponse, NSString *revocRegDefId, NSString *revocRegJson, NSNumber *timestamp) {
         if(errorInparseRevRegResponse.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *closeError) {
-                [self rejectResult:errorInparseRevRegResponse reject:reject];
-            }];
+            [self closePool:poolHandle :errorInparseRevRegResponse :nil :NO resolve:resolve reject:reject];
+
         }
         else {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                resolve(revocRegJson);
-            }];
+            [self closePool:poolHandle :nil :revocRegJson :YES resolve:resolve reject:reject];
+
             dispatch_semaphore_signal(parseRevDefSemaphore2);
         }
     }];
@@ -921,9 +901,8 @@ RCT_EXPORT_METHOD(getSchemasJson
     
     [IndyLedger buildGetSchemaRequestWithSubmitterDid:submitterDid id:schemaId completion:^(NSError *errorInBuildGetSchemaRequest, NSString *generatedRequestJSON) {
         if(errorInBuildGetSchemaRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorInBuildGetSchemaRequest reject:reject];
-            }];
+            [self closePool:poolHandle :errorInBuildGetSchemaRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestJSONSchema = generatedRequestJSON;
@@ -940,9 +919,8 @@ RCT_EXPORT_METHOD(getSchemasJson
     
     [IndyLedger submitRequest:requestJSONSchema poolHandle:poolHandle completion:^(NSError *errorInSubmitRequest, NSString *generatedRequestResultJSON) {
         if(errorInSubmitRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorInSubmitRequest reject:reject];
-            }];
+            [self closePool:poolHandle :errorInSubmitRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestResultJSONSchema = generatedRequestResultJSON;
@@ -956,20 +934,15 @@ RCT_EXPORT_METHOD(getSchemasJson
     dispatch_semaphore_t parseSchemaResponseSemaphore = dispatch_semaphore_create(0);
     [IndyLedger parseGetSchemaResponse:requestResultJSONSchema completion:^(NSError *errorInParseSchemaResponse, NSString *schemaId, NSString *generatedSchemaJson) {
         if(errorInParseSchemaResponse.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorInParseSchemaResponse reject:reject];
-            }];
+            [self closePool:poolHandle :errorInParseSchemaResponse :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             schemaJSON = generatedSchemaJson;
             dispatch_semaphore_signal(parseSchemaResponseSemaphore);
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                if(error.code > 1) {
-                    [self rejectResult:error reject:reject];
-                } else {
-                    resolve(generatedSchemaJson);
-                }
-            }];
+
+            [self closePool:poolHandle :nil :generatedSchemaJson :YES resolve:resolve reject:reject];
+
         }
     }];
     dispatch_semaphore_wait(parseSchemaResponseSemaphore, DISPATCH_TIME_FOREVER);
@@ -1005,14 +978,12 @@ RCT_EXPORT_METHOD(getCredDef:
                         else {
                             [IndyLedger parseGetCredDefResponse:requestResultJSON completion:^(NSError *errorWhileParseCredDefResponse, NSString *credDefId, NSString *credDefJson) {
                                 if(errorWhileParseCredDefResponse.code > 1) {
-                                    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                                        [self rejectResult:errorWhileParseCredDefResponse reject:reject];                                    }];
-                                    
-                                }
+    
+                                       [self closePool:poolHandle :errorWhileParseCredDefResponse :nil :NO resolve:resolve reject:reject];
+                                                                    }
                                 else {
-                                    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                                        resolve(credDefJson);
-                                    }];
+                                    [self closePool:poolHandle :nil :credDefJson :YES resolve:resolve reject:reject];
+
                                 }
                             }];
                         }
@@ -1028,6 +999,22 @@ RCT_EXPORT_METHOD(rejectResult
                   reject:(RCTPromiseRejectBlock)reject){
     NSString *errorCode = [@(error.code) stringValue];
     reject(errorCode,error.userInfo[@"message"],error);
+}
+
+RCT_EXPORT_METHOD(closePool
+                  :(IndyHandle)poolHandle
+                  :(NSError *)error
+                  :(NSString *) success
+                  :(BOOL) isResolve
+                  resolve:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject){
+    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *poolError) {
+        if (isResolve) {
+            resolve(success);
+        } else {
+            [self rejectResult:error reject:reject];
+        }
+    }];
 }
 
 RCT_EXPORT_METHOD(createRevocationStateObject
@@ -1062,9 +1049,8 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t buildRevRegSemaphore = dispatch_semaphore_create(0);
     [IndyLedger buildGetRevocRegDeltaRequestWithSubmitterDid:submitterDid revocRegDefId:revRegId from:@(0) to:timeStampNumber completion:^(NSError *errorWhileRevRegDelRequest, NSString *generatedRequestJSON) {
         if(errorWhileRevRegDelRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorWhileRevRegDelRequest reject:reject];
-            }];
+            [self closePool:poolHandle :errorWhileRevRegDelRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestJSONRevDelta = generatedRequestJSON;
@@ -1078,9 +1064,8 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t submitReqRevDeltaSemaphore = dispatch_semaphore_create(0);
     [IndyLedger submitRequest:requestJSONRevDelta poolHandle:poolHandle completion:^(NSError *errorSubmitRevRegDeltaRequest, NSString *generatedRequestResultJSON) {
         if(errorSubmitRevRegDeltaRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorSubmitRevRegDeltaRequest reject:reject];
-            }];
+            [self closePool:poolHandle :errorSubmitRevRegDeltaRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestResultJSONRevDelta = generatedRequestResultJSON;
@@ -1122,9 +1107,8 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t buildRevDefSemaphore = dispatch_semaphore_create(0);
     [IndyLedger buildGetRevocRegDefRequestWithSubmitterDid:submitterDid id:revRegId completion:^(NSError *errorWhileRevocRegDefRequest, NSString *generatedRequestJSON) {
         if(errorWhileRevocRegDefRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorWhileRevocRegDefRequest reject:reject];
-            }];
+            [self closePool:poolHandle :errorWhileRevocRegDefRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestJSONRevDef = generatedRequestJSON;
@@ -1141,9 +1125,9 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t submitReqDefSemaphore = dispatch_semaphore_create(0);
     [IndyLedger submitRequest:requestJSONRevDef poolHandle:poolHandle completion:^(NSError *errorWhileSubmitRequest, NSString *generatedRequestResultJSON) {
         if(errorWhileSubmitRequest.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorWhileSubmitRequest reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorWhileSubmitRequest :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             requestResultJSONRevDef = generatedRequestResultJSON;
@@ -1157,9 +1141,9 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t parseRevDefSemaphore = dispatch_semaphore_create(0);
     [IndyLedger parseGetRevocRegDefResponse:requestResultJSONRevDef completion:^(NSError *errorInParseRevocRegDefResponse, NSString *revocRegDefId, NSString *generatedRevocRegDefJson) {
         if(errorInParseRevocRegDefResponse.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:error reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorInParseRevocRegDefResponse :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             revocRegDefJSON = generatedRevocRegDefJson;
@@ -1207,9 +1191,9 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t blobReaderSemaphore = dispatch_semaphore_create(0);
     [IndyBlobStorage openReaderWithType:@"default" config:tailsWriterConfigString completion:^(NSError *errorWhileOpenReader, NSNumber *handle) {
         if(errorWhileOpenReader.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                [self rejectResult:errorWhileOpenReader reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorWhileOpenReader :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             storageHandle = handle;
@@ -1222,10 +1206,9 @@ RCT_EXPORT_METHOD(createRevocationStateObject
     dispatch_semaphore_t revStateSemaphore = dispatch_semaphore_create(0);
     [IndyAnoncreds createRevocationStateForCredRevID:credRevId timestamp:timeStamp revRegDefJSON:revocRegDefJSON revRegDeltaJSON:revocRegDeltaJSON blobStorageReaderHandle:storageHandle completion:^(NSError *errorWhileRevocState, NSString *generatedRevStateJSON) {
         if(errorWhileRevocState.code > 1) {
-            [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-                // DIT errorWhileRevocState.localizedDescription, nil);
-                [self rejectResult:errorWhileRevocState reject:reject];
-            }];
+
+            [self closePool:poolHandle :errorWhileRevocState :nil :NO resolve:resolve reject:reject];
+
         }
         else {
             revStateJSON = generatedRevStateJSON;
@@ -1247,9 +1230,8 @@ RCT_EXPORT_METHOD(createRevocationStateObject
                                                                 error:nil];
     NSString *revocObjectDataString = [[NSString alloc] initWithData:revocObjectData encoding:NSUTF8StringEncoding];
     
-    [IndyPool closePoolLedgerWithHandle:poolHandle completion:^(NSError *error) {
-        resolve(revocObjectDataString);
-    }];
+    [self closePool:poolHandle :nil :revocObjectDataString :YES resolve:resolve reject:reject];
+
     
 }
 

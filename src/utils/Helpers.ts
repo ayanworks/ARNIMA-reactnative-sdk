@@ -65,9 +65,9 @@ export async function verify(configJson: WalletConfig, credentialsJson: WalletCr
         JSON.stringify(Array.from(signature)));
     }
 
-    // if (!valid) {
-    //   throw new Error('Signature is not valid!');
-    // }
+    if (!valid) {
+      throw new Error('Signature is not valid!');
+    }
     const originalMessage = {
       '@type': message['@type'],
       '@id': message['@id'],
