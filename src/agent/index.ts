@@ -155,7 +155,7 @@ class Agent {
   deleteConnection = async (connectionId: string) => {
     try {
       const records = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Credential, JSON.stringify({ connectionId: connectionId }));
-      if (records !== null) {
+      if (records === null || records.length === 0) {
         await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, connectionId);
         return true;
       } else {
