@@ -82,7 +82,7 @@ class BasicMessageService {
    * @return {*}  {Promise<Boolean>}
    * @memberof BasicMessageService
    */
-  async save(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage, connectionId: string): Promise<Boolean> {
+  async save(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage, connectionId: string): Promise<Connection> {
     try {
       const { message } = inboundMessage;
       const chatBody = {
@@ -94,6 +94,7 @@ class BasicMessageService {
         connectionId: connectionId
       }
       const chatThread: Array<Object> = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.BasicMessage, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
       const basicMessageTags: Object = {
         connectionId: connectionId,
         lastUpdatedAt: new Date().toISOString()
@@ -121,7 +122,7 @@ class BasicMessageService {
         );
       }
 
-      return true;
+      return connection;
     } catch (error) {
       console.log('Basic message - Save message error = ', error);
       throw (error);
