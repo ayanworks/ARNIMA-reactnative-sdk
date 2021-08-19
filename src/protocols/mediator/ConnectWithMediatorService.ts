@@ -5,12 +5,30 @@
 
 import { MediatorResponse } from "./MediatorInterface";
 import { NetworkServices } from "../../network";
-import { RecordType } from '../../utils/Helpers'
-import { WalletRecord } from '../../wallet/WalletInterface';
+import { decodeInvitationFromUrl, RecordType } from '../../utils/Helpers'
+import { WalletConfig, WalletCredentials, WalletRecord } from '../../wallet/WalletInterface';
 import DatabaseServices from "../../storage";
 import WalletStorageService from '../../wallet/WalletStorageService';
+import ConnectionService from "../connection/ConnectionService";
 
 class MediatorService {
+
+
+  async connectWithGenericMediator(
+    configJson: WalletConfig,
+    credentialsJson: WalletCredentials,
+    invitationUrl: string): Promise<any> {
+    try {
+      console.log(invitationUrl)
+      const invitationJson = decodeInvitationFromUrl(invitationUrl);
+      console.log(invitationJson)
+      const connectionRecord = await ConnectionService.acceptInvitation(configJson, credentialsJson, {}, invitationJson, '');
+      console.log('connectionRecord', connectionRecord)
+
+    } catch (error) {
+      console.log('Error ConnectWithNewMediator', error)
+    }
+  }
 
   /**
    * Connect the mediator agent and store the mediator record 

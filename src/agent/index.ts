@@ -46,6 +46,21 @@ class Agent {
     }
   }
 
+  connectWithGenericMediator = async (invitationUrl: string) => {
+    try {
+      this.wallet = await DatabaseServices.getWallet();
+      const response = await ConnectWithMediatorService.connectWithGenericMediator(
+        JSON.parse(this.wallet.walletConfig),
+        JSON.parse(this.wallet.walletCredentials),
+        invitationUrl);
+      return response;
+    }
+    catch (error) {
+      console.log("Agent - Connect with mediator error = ", error);
+      throw error;
+    }
+  }
+
   updateMediator = async (url: string, apiType: string, apiBody: string) => {
     try {
       return await ConnectWithMediatorService.updateMediator(url, apiType, apiBody);

@@ -63,7 +63,7 @@ class ConnectionService {
     credentialsJson: WalletCredentials,
     didJson: Object,
     logo: string): Promise<string> {
-    const connection: Connection = await this.createConnection(configJson, credentialsJson, didJson);
+    const connection: Connection = await this.createConnection(configJson, credentialsJson, didJson, '');
 
     const connectionTags: Object = {
       connectionId: connection.verkey,
@@ -102,13 +102,17 @@ class ConnectionService {
     invitation: Message,
     logo: string): Promise<Connection> {
     try {
-      const connection: Connection = await this.createConnection(configJson, credentialsJson, didJson, invitation.label,
+      const connection: Connection = await this.createConnection(
+        configJson,
+        credentialsJson,
+        didJson,
+        invitation.serviceEndpoint,
+        invitation.label,
         invitation.hasOwnProperty('alias') ? invitation.alias.logoUrl : '',
-        invitation.hasOwnProperty('alias') ? invitation.alias.organizationId : '');
+        invitation.hasOwnProperty('alias') ? invitation.alias.organizationId : '',
+      );
       const connectionRequest = createConnectionRequestMessage(connection, DatabaseServices.getLabel(), logo);
       connection.state = ConnectionState.REQUESTED;
-
-      await sendOutboundMessage(configJson, credentialsJson, connection, connectionRequest, invitation)
 
       const connectionTags: Object = {
         connectionId: connection.verkey,
@@ -122,9 +126,10 @@ class ConnectionService {
         JSON.stringify(connection),
         JSON.stringify(connectionTags)
       );
+      await sendOutboundMessage(configJson, credentialsJson, connection, connectionRequest, invitation)
       return connection;
     } catch (error) {
-      console.log('Connection - Create invitation error = ', JSON.stringify(error));
+      console.log('Connection - Accept invitation error = ', JSON.stringify(error));
       throw error;
     }
   }
@@ -277,6 +282,7 @@ class ConnectionService {
   async createConnection(configJson: WalletConfig,
     credentialsJson: WalletCredentials,
     didJson: Object,
+    endpoint: string,
     label?: string,
     logo?: string,
     organizationId?: string,
@@ -284,13 +290,15 @@ class ConnectionService {
     try {
       const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(didJson), false);
 
-      const apiBody = {
-        publicVerkey: DatabaseServices.getVerKey(),
-        verkey: verkey
-      };
-      await NetworkServices(getServiceEndpoint() + 'verkey', 'POST', JSON.stringify(apiBody));
+      // const apiBody = {
+      //   publicVerkey: DatabaseServices.getVerKey(),
+      //   verkey: verkey
+      // };
+
+      // await NetworkServices(getServiceEndpoint() + 'verkey', 'POST', JSON.stringify(apiBody));
+      console.log('Connection - createConnection - pairwiseDid = ', verkey);
       const publicKey = new PublicKey(`${pairwiseDid}#1`, PublicKeyType.ED25519_SIG_2018, pairwiseDid, verkey);
-      const service = new Service(`${pairwiseDid};indy`, DatabaseServices.getServiceEndpoint(), [verkey], [DatabaseServices.getRoutingKeys()], 0, 'IndyAgent');
+      const service = new Service(`${pairwiseDid};indy`, 'didcomm:transport/queue', [verkey], [], 0, 'IndyAgent');
       const auth = new Authentication(publicKey);
       const did_doc = new DidDoc(pairwiseDid, [auth], [publicKey], [service]);
 
@@ -308,7 +316,6 @@ class ConnectionService {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-
       return connection;
     }
     catch (error) {

@@ -107,6 +107,24 @@ class InboundMessageHandler {
     }
   });
 
+  addMessages = async (message: Object) => {
+    this.wallet = await DatabaseServices.getWallet()
+
+    const ssiMessageTags = {
+      messageId: Math.floor(Math.random() * 1000000000).toString(),
+      autoProcessed: JSON.stringify(true),
+      isProcessed: JSON.stringify(false),
+    }
+    await WalletStorageService.addWalletRecord(
+      JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials),
+      RecordType.SSIMessage,
+      ssiMessageTags.messageId,
+      JSON.stringify(message),
+      JSON.stringify(ssiMessageTags)
+    );
+    EventRegister.emit('proceedInboundMessage', `proceedInboundMessage`);
+  }
+
   proceedInboundMessage = async () => {
     try {
       const query: Object = { isProcessed: JSON.stringify(false) }
@@ -118,9 +136,11 @@ class InboundMessageHandler {
         this.isProcess = true;
         if (unprocessedMessages[i].tags.autoProcessed === 'true') {
           const messageRecord = JSON.parse(unprocessedMessages[i].value);
-          const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord.msg);
+          console.log('messageRecord', messageRecord);
+          const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord);
           const message = JSON.parse(unpackMessageResponse.message);
 
+          console.log('Message Type = ', message['@type']);
           switch (message['@type']) {
             case MessageType.ConnectionResponse: {
               const isCompleted = await ConnectionService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse);

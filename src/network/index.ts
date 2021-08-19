@@ -2,6 +2,7 @@
   Copyright AyanWorks Technology Solutions Pvt. Ltd. All Rights Reserved.
   SPDX-License-Identifier: Apache-2.0
 */
+import InboundMessageService from '../transports';
 
 export const NetworkServices: Function = async (url: string, apiType: string, apiBody: string) => {
   try {
@@ -26,28 +27,33 @@ export const NetworkServices: Function = async (url: string, apiType: string, ap
 
 export const OutboundAgentMessage: Function = async (url: string, apiType: string, apiBody: string) => {
   try {
-    return new Promise(async function (
-      resolve, reject
-    ) {
-      const response = await fetch(url, {
-        method: apiType,
-        body: apiBody,
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/ssi-agent-wire',
-        },
-      }).then((response) => {
-        response.json()
-      })
-        .then((json) => {
-          resolve(json);
-        })
-        .catch((error) => {
-          reject('We are not able to communicate with the agent at this moment, Please try again later');
-        });
+    console.log("url", url)
+    console.log("apiBody", apiBody)
+    const abortController = new AbortController()
+    const id = setTimeout(() => abortController.abort(), 15000)
+    const response = await fetch(url, {
+      method: 'POST',
+      body: apiBody,
+      headers: { 'Content-Type': 'application/ssi-agent-wire' },
+      signal: abortController.signal,
+    })
+    clearTimeout(id)
+    const responseMessage = await response.text()
+    if (responseMessage) {
+      console.log(`Response received`, { responseMessage, status: response.status })
+      try {
+        const wireMessage = JSON.parse(responseMessage)
+        console.log(`Response received`, wireMessage)
+        await InboundMessageService.addMessages(wireMessage)
+        // this.agent.receiveMessage(wireMessage)
+      } catch (error) {
+        console.log('Unable to parse response message', error)
+      }
+    } else {
+      console.log(`No response received.`)
     }
-    )
   } catch (error) {
+    console.log('Error OutboundAgentMessage', error)
     throw new Error('We are not able to communicate with the agent at this moment, Please try again later');
   }
 };

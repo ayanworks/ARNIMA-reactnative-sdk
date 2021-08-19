@@ -15,6 +15,7 @@ import base64url from 'base64url';
 import DatabaseServices from '../storage';
 
 const Buffer = require('buffer').Buffer;
+global.Buffer = global.Buffer || require('buffer').Buffer
 
 const { ArnimaSdk } = NativeModules;
 
@@ -123,6 +124,7 @@ export async function sign(configJson: WalletConfig, credentialsJson: WalletCred
 
 export async function unpackMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage) {
   try {
+    console.log('inboundMessage', inboundMessage)
     const buf = Buffer.from(JSON.stringify(inboundMessage));
     let unpackedBufferMessage;
     if (Platform.OS === 'ios') {
@@ -132,6 +134,7 @@ export async function unpackMessage(configJson: WalletConfig, credentialsJson: W
       unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(buf))
     }
     const unpackedMessage = Buffer.from(unpackedBufferMessage);
+    console.log('unpackedMessage', unpackedMessage.toString('utf-8'))
     return JSON.parse(unpackedMessage.toString('utf-8'));
   } catch (error) {
     console.log("unpackMessage = ", error);
@@ -142,6 +145,7 @@ export async function unpackMessage(configJson: WalletConfig, credentialsJson: W
 export async function packMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, outboundMessage: OutboundMessage) {
   try {
     const { routingKeys, recipientKeys, senderVk, payload } = outboundMessage;
+    console.log("outboundMessage", outboundMessage)
     const buf = Buffer.from(JSON.stringify(payload));
     let packedBufferMessage;
     if (Platform.OS === 'ios') {
@@ -205,8 +209,12 @@ export function encodeBase64(data: string) {
 }
 
 export function createOutboundMessage(connection: Connection, payload: Object, invitation?: Message) {
+  payload['~transport'] = {
+    return_route: 'all'
+  }
+
   if (invitation) {
-    const { recipientKeys, routingKeys, serviceEndpoint } = invitation
+    const { recipientKeys, routingKeys, serviceEndpoint } = invitation;
     return {
       connection,
       endpoint: serviceEndpoint,
