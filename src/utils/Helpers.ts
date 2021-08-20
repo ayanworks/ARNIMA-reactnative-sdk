@@ -246,3 +246,18 @@ export async function sendOutboundMessage(configJson: WalletConfig, credentialsJ
   const outboundPackMessage = await packMessage(configJson, credentialsJson, outboundMessage);
   await OutboundAgentMessage(outboundMessage.endpoint, 'POST', JSON.stringify(outboundPackMessage));
 }
+
+export function replaceDidSovPrefixOnMessage(message) {
+  message['@type'] = replaceDidSovPrefix(message['@type'])
+}
+
+export function replaceDidSovPrefix(messageType: string) {
+  const didSovPrefix = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec'
+  const didCommPrefix = 'https://didcomm.org'
+
+  if (messageType.startsWith(didCommPrefix)) {
+    return messageType.replace(didCommPrefix, didSovPrefix)
+  }
+
+  return messageType
+}

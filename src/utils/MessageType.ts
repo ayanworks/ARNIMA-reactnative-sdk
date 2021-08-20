@@ -4,31 +4,37 @@
 */
 
 export enum MessageType {
-  ConnectionInvitation = 'https://didcomm.org/connections/1.0/invitation',
-  ConnectionRequest = 'https://didcomm.org/connections/1.0/request',
-  ConnectionResponse = 'https://didcomm.org/connections/1.0/response',
+  ConnectionInvitation = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/invitation',
+  ConnectionRequest = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/request',
+  ConnectionResponse = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/connections/1.0/response',
 
-  TrustPingMessage = 'https://didcomm.org/trust_ping/1.0/ping',
-  TrustPingResponseMessage = 'https://didcomm.org/trust_ping/1.0/ping_response',
+  TrustPingMessage = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/trust_ping/1.0/ping',
+  TrustPingResponseMessage = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/trust_ping/1.0/ping_response',
   
-  ProposeCredential = 'https://didcomm.org/issue-credential/1.0/propose-credential',
-  OfferCredential = 'https://didcomm.org/issue-credential/1.0/offer-credential',
-  RequestCredential = 'https://didcomm.org/issue-credential/1.0/request-credential',
-  IssueCredential = 'https://didcomm.org/issue-credential/1.0/issue-credential',
-  CredentialAck = 'https://didcomm.org/issue-credential/1.0/ack',
-  credentialPreview = 'https://didcomm.org/issue-credential/1.0/credential-preview',
+  ProposeCredential = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/propose-credential',
+  OfferCredential = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/offer-credential',
+  RequestCredential = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/request-credential',
+  IssueCredential = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/issue-credential',
+  CredentialAck = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/ack',
+  credentialPreview = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/issue-credential/1.0/credential-preview',
 
-  ProposePresentation = 'https://didcomm.org/present-proof/1.0/propose-presentation',
-  RequestPresentation = 'https://didcomm.org/present-proof/1.0/request-presentation',
-  Presentation = 'https://didcomm.org/present-proof/1.0/presentation',
-  PresentationAck = 'https://didcomm.org/present-proof/1.0/ack',
-  presentationPreview = "https://didcomm.org/present-proof/1.0/presentation-preview",
+  ProposePresentation = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/propose-presentation',
+  RequestPresentation = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/request-presentation',
+  Presentation = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/presentation',
+  PresentationAck = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/ack',
+  presentationPreview = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/present-proof/1.0/presentation-preview",
   
-  BasicMessage = 'https://didcomm.org/basicmessage/1.0/message',
+  BasicMessage = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/basicmessage/1.0/message',
   
-  ForwardMessage = 'https://didcomm.org/routing/1.0/forward',
+  ForwardMessage = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/routing/1.0/forward',
   
-  Ack = 'https://didcomm.org/notification/1.0/ack',
+  Ack = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/notification/1.0/ack',
 
-  problemReport = "https://didcomm.org/notification/1.0/problem-report"
+  problemReport = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/notification/1.0/problem-report",
+
+  MediationRequest = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/coordinate-mediation/1.0/mediate-request",
+  MediationGrant = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/coordinate-mediation/1.0/mediate-grant",
+
+  BatchPickup = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/messagepickup/1.0/batch-pickup",
+  Batch = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/messagepickup/1.0/batch"
 }

@@ -8,7 +8,7 @@ import { EventInterface } from "../agent/EventInterface";
 import { EventRegister } from 'react-native-event-listeners';
 import { MessageType } from "../utils/MessageType";
 import { Record } from "../wallet/WalletInterface";
-import { RecordType, getServiceEndpoint, unpackMessage } from "../utils/Helpers";
+import { RecordType, getServiceEndpoint, unpackMessage, replaceDidSovPrefixOnMessage } from "../utils/Helpers";
 import BasicMessageService from "../protocols/basicMessage/BasicMessageService";
 import ConnectionService from "../protocols/connection/ConnectionService";
 import CredentialService from "../protocols/credential/CredentialService";
@@ -17,6 +17,7 @@ import io from "socket.io-client";
 import PresentationService from "../protocols/presentation/PresentationService";
 import TrustPingService from "../protocols/trustPing/TrustPingService";
 import WalletStorageService from "../wallet/WalletStorageService";
+import ConnectWithMediatorService from "react-native-arnima-sdk/src/protocols/mediator/ConnectWithMediatorService";
 
 class InboundMessageHandler {
 
@@ -140,6 +141,7 @@ class InboundMessageHandler {
           const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord);
           const message = JSON.parse(unpackMessageResponse.message);
 
+          replaceDidSovPrefixOnMessage(message);
           console.log('Message Type = ', message['@type']);
           switch (message['@type']) {
             case MessageType.ConnectionResponse: {
@@ -274,11 +276,25 @@ class InboundMessageHandler {
 
 
               const event: EventInterface = {
-                message: `You have received a message from ${connection.theirLabel}`,   
-                connectionId: connection.verkey,             
+                message: `You have received a message from ${connection.theirLabel}`,
+                connectionId: connection.verkey,
                 messageData: JSON.stringify({})
               }
               EventRegister.emit('SDKEvent', event);
+              break;
+            }
+
+            case MessageType.MediationGrant: {
+              const isCompleted = await ConnectWithMediatorService.saveRoutingKeys(message);
+              if (isCompleted) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
+              break;
+            }
+
+            case MessageType.Batch: {
+              console.log(message);
+              // if (isCompleted) {
+              await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id)
+              // }
               break;
             }
             default: {

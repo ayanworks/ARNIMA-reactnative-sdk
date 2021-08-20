@@ -19,6 +19,7 @@ import PoolService from '../pool';
 import PresentationService from '../protocols/presentation/PresentationService';
 import WalletService from '../wallet/WalletService';
 import WalletStorageService from '../wallet/WalletStorageService';
+import { Connection } from 'react-native-arnima-sdk/src/protocols/connection/ConnectionInterface';
 
 const { ArnimaSdk } = NativeModules;
 
@@ -57,6 +58,24 @@ class Agent {
     }
     catch (error) {
       console.log("Agent - Connect with mediator error = ", error);
+      throw error;
+    }
+  }
+
+  mediationRequest = async (connection: Connection) => {
+    try {
+      const response = await ConnectWithMediatorService.mediationRequest(connection);
+    } catch (error) {
+      console.log("Agent - mediationRequest error = ", error);
+      throw error;
+    }
+  }
+
+  pickupMessages = async (mediatorConnection: Connection) => {
+    try {
+      const response = await ConnectWithMediatorService.pickupMessages(mediatorConnection);
+    } catch (error) {
+      console.log("Agent - pickupMessages error = ", error);
       throw error;
     }
   }
@@ -126,10 +145,17 @@ class Agent {
     }
   }
 
-  acceptInvitation = async (didJson: Object, message: any, logo: string,) => {
+  acceptInvitation = async (didJson: Object, message: any, logo: string, isMediator: boolean = false) => {
     try {
       const invitation = decodeInvitationFromUrl(message);
-      return await ConnectionService.acceptInvitation(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), didJson, invitation, logo);
+      return await ConnectionService.acceptInvitation(
+        JSON.parse(this.wallet.walletConfig),
+        JSON.parse(this.wallet.walletCredentials),
+        didJson,
+        invitation,
+        logo,
+        isMediator
+      );
     }
     catch (error) {
       console.log("Agent - Accept invitation error = ", error);

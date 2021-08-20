@@ -100,13 +100,15 @@ class ConnectionService {
     credentialsJson: WalletCredentials,
     didJson: Object,
     invitation: Message,
-    logo: string): Promise<Connection> {
+    logo: string,
+    isMediator: boolean
+  ): Promise<Connection> {
     try {
       const connection: Connection = await this.createConnection(
         configJson,
         credentialsJson,
         didJson,
-        invitation.serviceEndpoint,
+        isMediator,
         invitation.label,
         invitation.hasOwnProperty('alias') ? invitation.alias.logoUrl : '',
         invitation.hasOwnProperty('alias') ? invitation.alias.organizationId : '',
@@ -279,10 +281,11 @@ class ConnectionService {
    * @return {*}  {Promise<Connection>}
    * @memberof ConnectionService
    */
-  async createConnection(configJson: WalletConfig,
+  async createConnection(
+    configJson: WalletConfig,
     credentialsJson: WalletCredentials,
     didJson: Object,
-    endpoint: string,
+    isMediator: boolean,
     label?: string,
     logo?: string,
     organizationId?: string,
@@ -296,9 +299,23 @@ class ConnectionService {
       // };
 
       // await NetworkServices(getServiceEndpoint() + 'verkey', 'POST', JSON.stringify(apiBody));
+      let endpoint = '';
+      let routingKeys: string[] = [];
+      console.log('isMediator', isMediator)
+      if (isMediator) {
+        endpoint = 'didcomm:transport/queue';
+      } else {
+        const routingKey: string = DatabaseServices.getRoutingKeys()
+        console.log('routingKey', routingKey)
+        endpoint = getServiceEndpoint();
+        routingKeys.push(routingKey);
+      }
+      console.log(routingKeys)
+
+
       console.log('Connection - createConnection - pairwiseDid = ', verkey);
       const publicKey = new PublicKey(`${pairwiseDid}#1`, PublicKeyType.ED25519_SIG_2018, pairwiseDid, verkey);
-      const service = new Service(`${pairwiseDid};indy`, 'didcomm:transport/queue', [verkey], [], 0, 'IndyAgent');
+      const service = new Service(`${pairwiseDid};indy`, endpoint, [verkey], routingKeys, 0, 'IndyAgent');
       const auth = new Authentication(publicKey);
       const did_doc = new DidDoc(pairwiseDid, [auth], [publicKey], [service]);
 
