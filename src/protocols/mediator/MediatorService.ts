@@ -2,14 +2,12 @@
   Copyright AyanWorks Technology Solutions Pvt. Ltd. All Rights Reserved.
   SPDX-License-Identifier: Apache-2.0
 */
-
-import { MediatorResponse } from "./MediatorInterface";
-import { NetworkServices } from "../../network";
-import { decodeInvitationFromUrl, RecordType, sendOutboundMessage } from '../../utils/Helpers'
-import { WalletConfig, WalletCredentials, WalletRecord } from '../../wallet/WalletInterface';
-import DatabaseServices from "../../storage";
-import WalletStorageService from '../../wallet/WalletStorageService';
-import ConnectionService from "../connection/ConnectionService";
+import { MediatorResponse } from "react-native-arnima-sdk/src/protocols/mediator/MediatorInterface";
+import { NetworkServices } from "react-native-arnima-sdk/src/network";
+import { RecordType, sendOutboundMessage } from 'react-native-arnima-sdk/src/utils/Helpers'
+import { WalletRecord } from 'react-native-arnima-sdk/src/wallet/WalletInterface';
+import DatabaseServices from "react-native-arnima-sdk/src/storage";
+import WalletStorageService from 'react-native-arnima-sdk/src/wallet/WalletStorageService';
 import { createBatchPickupMessage, createKeylistUpdateMessage, createMediationRequestMessage } from "react-native-arnima-sdk/src/protocols/mediator/MediationMessages";
 import { Connection } from "react-native-arnima-sdk/src/protocols/connection/ConnectionInterface";
 import { NativeModules } from "react-native";
@@ -17,21 +15,6 @@ import { NativeModules } from "react-native";
 const { ArnimaSdk } = NativeModules;
 
 class MediatorService {
-  async connectWithGenericMediator(
-    configJson: WalletConfig,
-    credentialsJson: WalletCredentials,
-    invitationUrl: string): Promise<any> {
-    try {
-      console.log(invitationUrl)
-      const invitationJson = decodeInvitationFromUrl(invitationUrl);
-      console.log(invitationJson)
-      const connectionRecord = await ConnectionService.acceptInvitation(configJson, credentialsJson, {}, invitationJson, '', true);
-      console.log('connectionRecord', connectionRecord)
-
-    } catch (error) {
-      console.log('Error ConnectWithNewMediator', error)
-    }
-  }
 
   async mediationRequest(connection: Connection) {
     const myWallet: any = DatabaseServices.getWallet();
@@ -97,8 +80,6 @@ class MediatorService {
         false
       );
       await this.keylistUpdate(verkey);
-
-      console.log(5)
       return { endpoint, routingKeys, pairwiseDid, verkey };
     } catch (error) {
       console.log('MediatorService - getRouting error = ', error);

@@ -22,7 +22,7 @@ import { TrustPing } from "../trustPing/TrustPingInterface";
 import { TrustPingState } from '../trustPing/TrustPingState';
 import WalletStorageService from '../../wallet/WalletStorageService';
 import { createTrustPingMessage } from '../trustPing/TrustPingMessages';
-import ConnectWithMediatorService from 'react-native-arnima-sdk/src/protocols/mediator/ConnectWithMediatorService';
+import MediatorService from '../mediator/MediatorService';
 
 const { ArnimaSdk } = NativeModules;
 class ConnectionService {
@@ -105,7 +105,7 @@ class ConnectionService {
     isMediator: boolean
   ): Promise<Connection> {
     try {
-      const routing = await ConnectWithMediatorService.getRouting();
+      const routing = await MediatorService.getRouting();
       const connection: Connection = await this.createConnection(
         configJson,
         credentialsJson,
@@ -301,7 +301,6 @@ class ConnectionService {
   ): Promise<Connection> {
     try {
       const { endpoint, pairwiseDid, routingKeys, verkey } = routing;
-
 
       const publicKey = new PublicKey(`${pairwiseDid}#1`, PublicKeyType.ED25519_SIG_2018, pairwiseDid, verkey);
       const service = new Service(`${pairwiseDid};indy`, endpoint, [verkey], routingKeys, 0, 'IndyAgent');

@@ -11,7 +11,7 @@ import { NativeModules } from 'react-native';
 import { WalletConfig, WalletCredentials } from '../wallet/WalletInterface';
 import BasicMessageService from '../protocols/basicMessage/BasicMessageService';
 import ConnectionService from '../protocols/connection/ConnectionService';
-import ConnectWithMediatorService from '../protocols/mediator/ConnectWithMediatorService';
+import MediatorService from '../protocols/mediator/MediatorService';
 import CredentialService from '../protocols/credential/CredentialService';
 import DatabaseServices from '../storage';
 import InboundMessageService from '../transports';
@@ -37,23 +37,8 @@ class Agent {
 
   connectWithMediator = async (url: string, apiType: string, apiBody: string) => {
     try {
-      const response = await ConnectWithMediatorService.ConnectWithMediator(url, apiType, apiBody);
       this.wallet = await DatabaseServices.getWallet();
-      return response;
-    }
-    catch (error) {
-      console.log("Agent - Connect with mediator error = ", error);
-      throw error;
-    }
-  }
-
-  connectWithGenericMediator = async (invitationUrl: string) => {
-    try {
-      this.wallet = await DatabaseServices.getWallet();
-      const response = await ConnectWithMediatorService.connectWithGenericMediator(
-        JSON.parse(this.wallet.walletConfig),
-        JSON.parse(this.wallet.walletCredentials),
-        invitationUrl);
+      const response = await MediatorService.ConnectWithMediator(url, apiType, apiBody);
       return response;
     }
     catch (error) {
@@ -64,7 +49,7 @@ class Agent {
 
   mediationRequest = async (connection: Connection) => {
     try {
-      const response = await ConnectWithMediatorService.mediationRequest(connection);
+      await MediatorService.mediationRequest(connection);
     } catch (error) {
       console.log("Agent - mediationRequest error = ", error);
       throw error;
@@ -73,7 +58,7 @@ class Agent {
 
   pickupMessages = async (mediatorConnection: Connection) => {
     try {
-      const response = await ConnectWithMediatorService.pickupMessages(mediatorConnection);
+      await MediatorService.pickupMessages(mediatorConnection);
     } catch (error) {
       console.log("Agent - pickupMessages error = ", error);
       throw error;
@@ -82,7 +67,7 @@ class Agent {
 
   updateMediator = async (url: string, apiType: string, apiBody: string) => {
     try {
-      return await ConnectWithMediatorService.updateMediator(url, apiType, apiBody);
+      return await MediatorService.updateMediator(url, apiType, apiBody);
     }
     catch (error) {
       console.log("Agent - Update mediator error = ", error);

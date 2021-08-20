@@ -17,7 +17,7 @@ import io from "socket.io-client";
 import PresentationService from "../protocols/presentation/PresentationService";
 import TrustPingService from "../protocols/trustPing/TrustPingService";
 import WalletStorageService from "../wallet/WalletStorageService";
-import ConnectWithMediatorService from "react-native-arnima-sdk/src/protocols/mediator/ConnectWithMediatorService";
+import MediatorService from "../protocols/mediator/MediatorService";
 
 class InboundMessageHandler {
 
@@ -137,12 +137,12 @@ class InboundMessageHandler {
         this.isProcess = true;
         if (unprocessedMessages[i].tags.autoProcessed === 'true') {
           const messageRecord = JSON.parse(unprocessedMessages[i].value);
-          console.log('messageRecord', messageRecord);
           const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord);
           const message = JSON.parse(unpackMessageResponse.message);
 
           replaceDidSovPrefixOnMessage(message);
           console.log('Message Type = ', message['@type']);
+          console.log('unpackMessageResponse', JSON.stringify(message, null, 2));
           switch (message['@type']) {
             case MessageType.ConnectionResponse: {
               const isCompleted = await ConnectionService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse);
@@ -285,7 +285,7 @@ class InboundMessageHandler {
             }
 
             case MessageType.MediationGrant: {
-              const isCompleted = await ConnectWithMediatorService.saveRoutingKeys(message);
+              const isCompleted = await MediatorService.saveRoutingKeys(message);
               if (isCompleted) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
               break;
             }
