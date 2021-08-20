@@ -147,6 +147,7 @@ class Agent {
 
   acceptInvitation = async (didJson: Object, message: any, logo: string, isMediator: boolean = false) => {
     try {
+      this.wallet = await DatabaseServices.getWallet();
       const invitation = decodeInvitationFromUrl(message);
       return await ConnectionService.acceptInvitation(
         JSON.parse(this.wallet.walletConfig),
@@ -166,6 +167,16 @@ class Agent {
   getConnectionRecord = async (query: Object) => {
     try {
       return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, JSON.stringify(query));
+    }
+    catch (error) {
+      console.log("Agent - Get all connections error = ", error);
+      throw error;
+    }
+  }
+
+  getMediatorRecord = async (query: Object) => {
+    try {
+      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.MediatorAgent, JSON.stringify(query));
     }
     catch (error) {
       console.log("Agent - Get all connections error = ", error);

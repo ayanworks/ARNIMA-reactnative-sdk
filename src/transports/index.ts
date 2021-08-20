@@ -291,10 +291,15 @@ class InboundMessageHandler {
             }
 
             case MessageType.Batch: {
-              console.log(message);
-              // if (isCompleted) {
+              await message['messages~attach'].map(async (message) => {
+                await this.addMessages(message.message);
+              })
               await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id)
-              // }
+              break;
+            }
+            case MessageType.KeyListUpdateResponse: {
+              await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id)
+
               break;
             }
             default: {

@@ -24,3 +24,14 @@ export async function createBatchPickupMessage(batchSize: number = 10) {
     batch_size: batchSize,
   };
 }
+
+export async function createKeylistUpdateMessage(verkey: string) {
+  return {
+    '@type': MessageType.KeyListUpdate,
+    '@id': uuid(),
+    updates: [{
+      "recipient_key": verkey,
+      action: "add"
+    }]
+  };
+}

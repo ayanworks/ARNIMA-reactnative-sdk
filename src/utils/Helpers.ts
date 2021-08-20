@@ -209,10 +209,11 @@ export function encodeBase64(data: string) {
 }
 
 export function createOutboundMessage(connection: Connection, payload: Object, invitation?: Message) {
-  payload['~transport'] = {
-    return_route: 'all'
+  if (connection.didDoc.service[0].serviceEndpoint == 'didcomm:transport/queue') {
+    payload['~transport'] = {
+      return_route: 'all'
+    }
   }
-
   if (invitation) {
     const { recipientKeys, routingKeys, serviceEndpoint } = invitation;
     return {

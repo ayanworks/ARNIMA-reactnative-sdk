@@ -22,6 +22,7 @@ import { TrustPing } from "../trustPing/TrustPingInterface";
 import { TrustPingState } from '../trustPing/TrustPingState';
 import WalletStorageService from '../../wallet/WalletStorageService';
 import { createTrustPingMessage } from '../trustPing/TrustPingMessages';
+import ConnectWithMediatorService from 'react-native-arnima-sdk/src/protocols/mediator/ConnectWithMediatorService';
 
 const { ArnimaSdk } = NativeModules;
 class ConnectionService {
@@ -104,11 +105,13 @@ class ConnectionService {
     isMediator: boolean
   ): Promise<Connection> {
     try {
+      const routing = await ConnectWithMediatorService.getRouting();
       const connection: Connection = await this.createConnection(
         configJson,
         credentialsJson,
         didJson,
         isMediator,
+        routing,
         invitation.label,
         invitation.hasOwnProperty('alias') ? invitation.alias.logoUrl : '',
         invitation.hasOwnProperty('alias') ? invitation.alias.organizationId : '',
@@ -286,34 +289,20 @@ class ConnectionService {
     credentialsJson: WalletCredentials,
     didJson: Object,
     isMediator: boolean,
+    routing: {
+      endpoint: string;
+      routingKeys: string[];
+      pairwiseDid: string;
+      verkey: string;
+    },
     label?: string,
     logo?: string,
     organizationId?: string,
   ): Promise<Connection> {
     try {
-      const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(didJson), false);
-
-      // const apiBody = {
-      //   publicVerkey: DatabaseServices.getVerKey(),
-      //   verkey: verkey
-      // };
-
-      // await NetworkServices(getServiceEndpoint() + 'verkey', 'POST', JSON.stringify(apiBody));
-      let endpoint = '';
-      let routingKeys: string[] = [];
-      console.log('isMediator', isMediator)
-      if (isMediator) {
-        endpoint = 'didcomm:transport/queue';
-      } else {
-        const routingKey: string = DatabaseServices.getRoutingKeys()
-        console.log('routingKey', routingKey)
-        endpoint = getServiceEndpoint();
-        routingKeys.push(routingKey);
-      }
-      console.log(routingKeys)
+      const { endpoint, pairwiseDid, routingKeys, verkey } = routing;
 
 
-      console.log('Connection - createConnection - pairwiseDid = ', verkey);
       const publicKey = new PublicKey(`${pairwiseDid}#1`, PublicKeyType.ED25519_SIG_2018, pairwiseDid, verkey);
       const service = new Service(`${pairwiseDid};indy`, endpoint, [verkey], routingKeys, 0, 'IndyAgent');
       const auth = new Authentication(publicKey);

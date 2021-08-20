@@ -10,8 +10,11 @@ import { WalletConfig, WalletCredentials, WalletRecord } from '../../wallet/Wall
 import DatabaseServices from "../../storage";
 import WalletStorageService from '../../wallet/WalletStorageService';
 import ConnectionService from "../connection/ConnectionService";
-import { createBatchPickupMessage, createMediationRequestMessage } from "react-native-arnima-sdk/src/protocols/mediator/MediationMessages";
+import { createBatchPickupMessage, createKeylistUpdateMessage, createMediationRequestMessage } from "react-native-arnima-sdk/src/protocols/mediator/MediationMessages";
 import { Connection } from "react-native-arnima-sdk/src/protocols/connection/ConnectionInterface";
+import { NativeModules } from "react-native";
+
+const { ArnimaSdk } = NativeModules;
 
 class MediatorService {
   async connectWithGenericMediator(
@@ -75,11 +78,56 @@ class MediatorService {
     const batchPickupMessage = await createBatchPickupMessage();
     await sendOutboundMessage(
       JSON.parse(myWallet.walletConfig),
-      JSON.parse(myWallet.walletConfig),
+      JSON.parse(myWallet.walletCredentials),
       mediatorConnection,
       batchPickupMessage,
     );
     return true
+  }
+
+  async getRouting() {
+    try {
+      const myWallet: any = DatabaseServices.getWallet();
+      const endpoint = myWallet.serviceEndpoint !== "" ? myWallet.serviceEndpoint : 'didcomm:transport/queue'
+      const routingKeys: string[] = myWallet.routingKey !== '' ? [myWallet.routingKey] : []
+      const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
+        myWallet.walletConfig,
+        myWallet.walletCredentials,
+        JSON.stringify({}),
+        false
+      );
+      await this.keylistUpdate(verkey);
+
+      console.log(5)
+      return { endpoint, routingKeys, pairwiseDid, verkey };
+    } catch (error) {
+      console.log('MediatorService - getRouting error = ', error);
+      throw error;
+    }
+  }
+
+  async keylistUpdate(verkey: string) {
+    try {
+      const myWallet: any = DatabaseServices.getWallet();
+      const keylistUpdateMessage = await createKeylistUpdateMessage(verkey);
+      const [mediatorConnection] = await WalletStorageService.getWalletRecordsFromQuery(
+        JSON.parse(myWallet.walletConfig),
+        JSON.parse(myWallet.walletCredentials),
+        RecordType.MediatorAgent,
+        JSON.stringify({})
+      );
+      if (mediatorConnection) {
+        await sendOutboundMessage(
+          JSON.parse(myWallet.walletConfig),
+          JSON.parse(myWallet.walletCredentials),
+          JSON.parse(mediatorConnection.value),
+          keylistUpdateMessage,
+        )
+      }
+    } catch (error) {
+      console.log('MediatorService - keylistUpdate error = ', error);
+      throw error;
+    }
   }
 
   /**

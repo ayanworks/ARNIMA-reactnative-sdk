@@ -34,6 +34,8 @@ export enum MessageType {
 
   MediationRequest = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/coordinate-mediation/1.0/mediate-request",
   MediationGrant = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/coordinate-mediation/1.0/mediate-grant",
+  KeyListUpdate = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/coordinatemediation/1.0/keylist-update",
+  KeyListUpdateResponse = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/coordinatemediation/1.0/keylist-update-response",
 
   BatchPickup = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/messagepickup/1.0/batch-pickup",
   Batch = "did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/messagepickup/1.0/batch"

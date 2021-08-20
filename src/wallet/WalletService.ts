@@ -52,32 +52,32 @@ class WalletService {
         verKey: verkey,
         masterSecretId: masterSecretId,
       });
+      // TODO : Can remove if not required
+      // const walletRecord: WalletRecord = {
+      //   walletConfig: config,
+      //   walletCredentials: credentials,
+      //   label: label,
+      //   serviceEndpoint: "",
+      //   routingKey: "",
+      //   publicDid: did,
+      //   verKey: verkey,
+      //   masterSecretId: masterSecretId,
+      // }
 
-      const walletRecord: WalletRecord = {
-        walletConfig: config,
-        walletCredentials: credentials,
-        label: label,
-        serviceEndpoint: "",
-        routingKey: "",
-        publicDid: did,
-        verKey: verkey,
-        masterSecretId: masterSecretId,
-      }
+      // const walletRecordTags: Object = {
+      //   walletName: label,
+      //   publicDid: did,
+      //   verKey: verkey,
+      // }
 
-      const walletRecordTags: Object = {
-        walletName: label,
-        publicDid: did,
-        verKey: verkey,
-      }
-
-      await WalletStorageService.addWalletRecord(
-        config,
-        credentials,
-        RecordType.MediatorAgent,
-        '1',
-        JSON.stringify(walletRecord),
-        JSON.stringify(walletRecordTags)
-      );
+      // await WalletStorageService.addWalletRecord(
+      //   config,
+      //   credentials,
+      //   RecordType.MediatorAgent,
+      //   '1',
+      //   JSON.stringify(walletRecord),
+      //   JSON.stringify(walletRecordTags)
+      // );
     }
     return response;
   }
