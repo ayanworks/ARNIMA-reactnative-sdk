@@ -22,6 +22,8 @@ import { TrustPing } from "../trustPing/TrustPingInterface";
 import { TrustPingState } from '../trustPing/TrustPingState';
 import WalletStorageService from '../../wallet/WalletStorageService';
 import { createTrustPingMessage } from '../trustPing/TrustPingMessages';
+import { EventInterface } from 'react-native-arnima-sdk/src/agent/EventInterface';
+import { EventRegister } from 'react-native-event-listeners';
 
 const { ArnimaSdk } = NativeModules;
 class ConnectionService {
@@ -197,6 +199,11 @@ class ConnectionService {
         JSON.stringify(trustPing),
         JSON.stringify(trustPingTags)
       );
+      const event: EventInterface = {
+        message: `You are now connected with ${connection.theirLabel}`,
+        messageData: JSON.stringify({})
+      }
+      EventRegister.emit('SDKEvent', event);
       return true;
     }
     catch (error) {

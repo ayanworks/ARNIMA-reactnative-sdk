@@ -108,6 +108,8 @@ class InboundMessageHandler {
   });
 
   proceedInboundMessage = async () => {
+    let unprocessedMessagesId;
+
     try {
       const query: Object = { isProcessed: JSON.stringify(false) }
       let unprocessedMessages: Array<Record> = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify(query));
@@ -116,6 +118,7 @@ class InboundMessageHandler {
       }
       for (let i = 0; i < unprocessedMessages.length; i++) {
         this.isProcess = true;
+        unprocessedMessagesId = unprocessedMessages[i].id;
         if (unprocessedMessages[i].tags.autoProcessed === 'true') {
           const messageRecord = JSON.parse(unprocessedMessages[i].value);
           const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord.msg);
@@ -140,17 +143,12 @@ class InboundMessageHandler {
                 messageData: JSON.stringify({})
               }
               EventRegister.emit('SDKEvent', event);
-              console.log("Connected...");
+              console.log("Connected by scanning the QR code ...");
               break;
             }
             case MessageType.TrustPingResponseMessage: {
               const connection: Connection = await TrustPingService.saveTrustPingResponse(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse);
               if (connection !== null) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
-              const event: EventInterface = {
-                message: `You are now connected with ${connection.theirLabel}`,
-                messageData: JSON.stringify({})
-              }
-              EventRegister.emit('SDKEvent', event);
               break;
             }
             case MessageType.OfferCredential: {
@@ -254,8 +252,8 @@ class InboundMessageHandler {
 
 
               const event: EventInterface = {
-                message: `You have received a message from ${connection.theirLabel}`,   
-                connectionId: connection.verkey,             
+                message: `You have received a message from ${connection.theirLabel}`,
+                connectionId: connection.verkey,
                 messageData: JSON.stringify({})
               }
               EventRegister.emit('SDKEvent', event);
@@ -273,6 +271,9 @@ class InboundMessageHandler {
     }
     catch (error) {
       console.warn('Agent - Proceed inbound message error = ', error)
+      if (JSON.stringify(error).includes("213") || JSON.stringify(error).includes("0")) {
+        await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessagesId)
+      }
       this.isProcess = false;
       EventRegister.emit('inboundMessageStatusListener', `inboundMessageStatusListener`);
       throw error;
