@@ -63,7 +63,6 @@ class Agent {
       console.log('Agent - Get wallet error = ', error);
       throw error;
     }
-
   }
 
   openWallet = async () => {
@@ -77,7 +76,7 @@ class Agent {
 
   getAllPool = async () => {
     try {
-      return await PoolService.getAllPool(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials));
+      return await PoolService.getAllPool();
     } catch (error) {
       console.log("Agent - Get all pool error = ", error);
       throw error;
@@ -86,7 +85,7 @@ class Agent {
 
   createPool = async (poolName: string, poolConfig: string, defaultPool?: boolean) => {
     try {
-      return await PoolService.createPool(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), poolName, poolConfig, defaultPool);
+      return await PoolService.createPool(poolName, poolConfig, defaultPool);
     } catch (error) {
       console.log("Agent - Create pool error = ", error);
       throw error;
@@ -95,7 +94,7 @@ class Agent {
 
   selectDefaultPool = async (poolName: string) => {
     try {
-      return await PoolService.selectDefaultPool(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), poolName)
+      return await PoolService.selectDefaultPool(poolName)
     } catch (error) {
       console.log("Agent - Select default pool error = ", error);
       throw error;
@@ -104,7 +103,7 @@ class Agent {
 
   createInvitation = async (didJson: Object, logo: string) => {
     try {
-      return await ConnectionService.createInvitation(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), didJson, logo);
+      return await ConnectionService.createInvitation(didJson, logo);
     } catch (error) {
       console.log("Agent - Create invitation error = ", error);
       throw error;
@@ -114,7 +113,7 @@ class Agent {
   acceptInvitation = async (didJson: Object, message: any, logo: string,) => {
     try {
       const invitation = decodeInvitationFromUrl(message);
-      return await ConnectionService.acceptInvitation(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), didJson, invitation, logo);
+      return await ConnectionService.acceptInvitation(didJson, invitation, logo);
     }
     catch (error) {
       console.log("Agent - Accept invitation error = ", error);
@@ -124,7 +123,7 @@ class Agent {
 
   getConnectionRecord = async (query: Object) => {
     try {
-      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, JSON.stringify(query));
+      return await WalletStorageService.getWalletRecordsFromQuery(RecordType.Connection, JSON.stringify(query));
     }
     catch (error) {
       console.log("Agent - Get all connections error = ", error);
@@ -134,7 +133,7 @@ class Agent {
 
   getPresentationRecord = async (query: Object) => {
     try {
-      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Presentation, JSON.stringify(query));
+      return await WalletStorageService.getWalletRecordsFromQuery(RecordType.Presentation, JSON.stringify(query));
     }
     catch (error) {
       console.log("Agent - Get all connections error = ", error);
@@ -144,7 +143,7 @@ class Agent {
 
   basicMessageHistory = async (query: Object) => {
     try {
-      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.BasicMessage, JSON.stringify(query));
+      return await WalletStorageService.getWalletRecordsFromQuery(RecordType.BasicMessage, JSON.stringify(query));
     }
     catch (error) {
       console.log("Agent - Get all connections error = ", error);
@@ -154,9 +153,9 @@ class Agent {
 
   deleteConnection = async (connectionId: string) => {
     try {
-      const records = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Credential, JSON.stringify({ connectionId: connectionId }));
+      const records = await WalletStorageService.getWalletRecordsFromQuery(RecordType.Credential, JSON.stringify({ connectionId: connectionId }));
       if (records === null || records.length === 0) {
-        await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, connectionId);
+        await WalletStorageService.deleteWalletRecord(RecordType.Connection, connectionId);
         return true;
       } else {
         return false;
@@ -170,7 +169,7 @@ class Agent {
   getAllActionMessages = async () => {
     try {
       const query = { autoProcessed: false }
-      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify(query));
+      return await WalletStorageService.getWalletRecordsFromQuery(RecordType.SSIMessage, JSON.stringify(query));
     }
     catch (error) {
       console.log("Agent - Get all action messages error= ", error);
@@ -180,11 +179,11 @@ class Agent {
 
   getIssueCredentialByConnectionId = async (connectionId: string) => {
     try {
-      let query = {}
+      let query = { }
       if (connectionId !== null) {
         query = { connectionId: connectionId }
       }
-      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Credential, JSON.stringify(query));
+      return await WalletStorageService.getWalletRecordsFromQuery(RecordType.Credential, JSON.stringify(query));
     } catch (error) {
       console.log('Agent - Get issue credential by connection id error = ', error);
       throw error;
@@ -193,7 +192,7 @@ class Agent {
 
   getPresentationByConnectionId = async (connectionId: string) => {
     try {
-      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Presentation, JSON.stringify({ connectionId: connectionId }));
+      return await WalletStorageService.getWalletRecordsFromQuery(RecordType.Presentation, JSON.stringify({ connectionId: connectionId }));
     } catch (error) {
       console.log('Agent - Get presentation by connection id error = ', error);
       throw error;
@@ -202,7 +201,7 @@ class Agent {
 
   getAllActionMessagesById = async (thId: string) => {
     try {
-      return await WalletStorageService.getWalletRecordFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify({ thId: thId }));
+      return await WalletStorageService.getWalletRecordFromQuery(RecordType.SSIMessage, JSON.stringify({ thId: thId }));
     } catch (error) {
       console.log('Agent - Get all action messages by id error = ', error);
       throw error;
@@ -211,7 +210,7 @@ class Agent {
 
   getIssueCredentialByCredentialsId = async (referent: string) => {
     try {
-      return await WalletStorageService.getWalletRecordFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Credential, JSON.stringify({ credentialsId: referent }));
+      return await WalletStorageService.getWalletRecordFromQuery(RecordType.Credential, JSON.stringify({ credentialsId: referent }));
     } catch (error) {
       console.log('Agent - Get all issue credential by credentials id error = ', error);
       throw error;
@@ -221,7 +220,6 @@ class Agent {
   sendCredentialProposal = async (connectionId: object, credentialProposal: string, schemaId: string, credDefId: string, issuerDid: string, comment: string) => {
     try {
       return await CredentialService.createProposal(
-        JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials),
         connectionId,
         credentialProposal,
         schemaId,
@@ -240,8 +238,8 @@ class Agent {
       let { message }: any = inboundMessage;
       message = JSON.stringify(message);
       inboundMessage['message'] = message;
-      const response: Boolean = await CredentialService.createRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), inboundMessage);
-      if (response) await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, messageId);
+      const response: Boolean = await CredentialService.createRequest(inboundMessage);
+      if (response) await WalletStorageService.deleteWalletRecord(RecordType.SSIMessage, messageId);
       return response;
     } catch (error) {
       console.log('Agent - Accept credential offer error = ', error);
@@ -254,8 +252,8 @@ class Agent {
       let { message }: any = inboundMessage;
       message = JSON.stringify(message);
       inboundMessage['message'] = message;
-      const response: Boolean = await CredentialService.processCredential(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), inboundMessage);
-      if (response) await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, messageId);
+      const response: Boolean = await CredentialService.processCredential(inboundMessage);
+      if (response) await WalletStorageService.deleteWalletRecord(RecordType.SSIMessage, messageId);
       return response;
     } catch (error) {
       console.log('Agent - Store credential error = ', error);
@@ -279,7 +277,7 @@ class Agent {
 
   sendBasicMessage = async (message: string, connectionId: string) => {
     try {
-      return await BasicMessageService.send(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), message, connectionId);
+      return await BasicMessageService.send(message, connectionId);
     } catch (error) {
       console.log('Agent - Send message error = ', error);
       throw error;
@@ -293,7 +291,6 @@ class Agent {
     try {
       presentationProposal["@type"] = MessageType.presentationPreview;
       return await PresentationService.createProposal(
-        JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials),
         connectionId,
         presentationProposal,
         comment
@@ -306,8 +303,8 @@ class Agent {
 
   sendProof = async (messageId: string, inboundMessage: InboundMessage, revealAttributes: boolean, presentationObj: object) => {
     try {
-      const response: Boolean = await PresentationService.createPresentation(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), inboundMessage, revealAttributes, presentationObj);
-      if (response) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, messageId) }
+      const response: Boolean = await PresentationService.createPresentation(inboundMessage, revealAttributes, presentationObj);
+      if (response) { await WalletStorageService.deleteWalletRecord(RecordType.SSIMessage, messageId) }
       return response;
     } catch (error) {
       console.log('Agent - Send proof error = ', error);
@@ -320,8 +317,8 @@ class Agent {
       let { message }: any = inboundMessage;
       message = JSON.stringify(message);
       inboundMessage['message'] = message;
-      const response = await PresentationService.verifyProof(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageId, inboundMessage);
-      await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, messageId)
+      const response = await PresentationService.verifyProof(messageId, inboundMessage);
+      await WalletStorageService.deleteWalletRecord(RecordType.SSIMessage, messageId)
       return response;
     } catch (error) {
       console.log('Agent - Verify proof error = ', error);
@@ -331,7 +328,7 @@ class Agent {
 
   sendPresentProofRequest = async (connectionId: string, proofRequest: object, comment: string) => {
     try {
-      return await PresentationService.createRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), connectionId, proofRequest, comment);
+      return await PresentationService.createRequest(connectionId, proofRequest, comment);
     } catch (error) {
       console.log('Agent - Send present proof request error = ', error);
       throw error;
@@ -340,7 +337,7 @@ class Agent {
 
   getAllActionMessagesByMessageId = async (messageId: string) => {
     try {
-      return await WalletStorageService.getWalletRecordFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify({ messageId: messageId }));
+      return await WalletStorageService.getWalletRecordFromQuery(RecordType.SSIMessage, JSON.stringify({ messageId: messageId }));
     } catch (error) {
       console.log('Agent - Get all action messages by message id error = ', error);
       throw error;
@@ -349,7 +346,7 @@ class Agent {
 
   getConnection = async (connectionId: string) => {
     try {
-      return await WalletStorageService.getWalletRecordFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, JSON.stringify({ connectionId: connectionId }));
+      return await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify({ connectionId: connectionId }));
     } catch (error) {
       console.log('Agent - Get Connection from connection id error = ', error);
       throw error;
@@ -368,13 +365,9 @@ class Agent {
       }
       const data = [];
 
-      await PoolService.deletePoolRecords(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials));
+      await PoolService.deletePoolRecords();
 
-      const response = await ArnimaSdk.exportWallet(
-        this.wallet.walletConfig,
-        this.wallet.walletCredentials,
-        JSON.stringify(config),
-      );
+      const response = await ArnimaSdk.exportWallet(JSON.stringify(config));
 
       return response;
     } catch (error) {
@@ -397,7 +390,7 @@ class Agent {
         JSON.stringify([])
       );
 
-      const mediatorRecord = await WalletStorageService.getWalletRecordFromQuery(config, credentials, RecordType.MediatorAgent, '{}');
+      const mediatorRecord = await WalletStorageService.getWalletRecordFromQuery(RecordType.MediatorAgent, '{}');
 
       DatabaseServices.storeWallet({
         walletConfig: JSON.stringify(config),

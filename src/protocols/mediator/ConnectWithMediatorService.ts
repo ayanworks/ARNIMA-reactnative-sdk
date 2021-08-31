@@ -51,8 +51,6 @@ class MediatorService {
       }
 
       await WalletStorageService.updateWalletRecord(
-        myWallet.walletConfig,
-        myWallet.walletConfig,
         RecordType.MediatorAgent,
         '1',
         JSON.stringify(walletRecord),

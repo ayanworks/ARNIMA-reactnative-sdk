@@ -40,7 +40,7 @@ function timestamp(): Uint8Array {
   return Uint8Array.from(bytes).reverse();
 }
 
-export async function verify(configJson: WalletConfig, credentialsJson: WalletCredentials, message: Message, field: string) {
+export async function verify(message: Message, field: string) {
   try {
     const fieldKey = `${field}~sig`
     const { [fieldKey]: data, ...signedMessage } = message;
@@ -51,18 +51,18 @@ export async function verify(configJson: WalletConfig, credentialsJson: WalletCr
 
     let valid;
     if (Platform.OS == 'android') {
-      valid = await ArnimaSdk.cryptoVerify(JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
+      valid = await ArnimaSdk.cryptoVerify(
         signerVerkey,
         Array.from(signedData),
-        Array.from(signature));
+        Array.from(signature),
+      );
     }
     else {
-      valid = await ArnimaSdk.cryptoVerify(JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
+      valid = await ArnimaSdk.cryptoVerify(
         signerVerkey,
         data.sig_data,
-        JSON.stringify(Array.from(signature)));
+        JSON.stringify(Array.from(signature))
+      );
     }
 
     // if (!valid) {
@@ -82,7 +82,7 @@ export async function verify(configJson: WalletConfig, credentialsJson: WalletCr
   }
 }
 
-export async function sign(configJson: WalletConfig, credentialsJson: WalletCredentials, signerVerkey: string, message: Message, field: string) {
+export async function sign(signerVerkey: string, message: Message, field: string) {
   try {
 
     const { [field]: data, ...originalMessage } = message;
@@ -91,15 +91,15 @@ export async function sign(configJson: WalletConfig, credentialsJson: WalletCred
     let signatureBuffer;
 
     if (Platform.OS === 'ios') {
-      signatureBuffer = await ArnimaSdk.cryptoSign(JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
+      signatureBuffer = await ArnimaSdk.cryptoSign(
         signerVerkey,
-        JSON.stringify(data));
+        JSON.stringify(data)
+      );
     } else {
-      signatureBuffer = await ArnimaSdk.cryptoSign(JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
+      signatureBuffer = await ArnimaSdk.cryptoSign(
         signerVerkey,
-        Array.from(dataBuffer));
+        Array.from(dataBuffer)
+      );
     }
 
     const signedMessage = {
@@ -121,15 +121,15 @@ export async function sign(configJson: WalletConfig, credentialsJson: WalletCred
   }
 }
 
-export async function unpackMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage) {
+export async function unpackMessage(inboundMessage: InboundMessage) {
   try {
     const buf = Buffer.from(JSON.stringify(inboundMessage));
     let unpackedBufferMessage;
     if (Platform.OS === 'ios') {
-      unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(inboundMessage))
+      unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(inboundMessage))
     }
     else {
-      unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(buf))
+      unpackedBufferMessage = await ArnimaSdk.unpackMessage(Array.from(buf))
     }
     const unpackedMessage = Buffer.from(unpackedBufferMessage);
     return JSON.parse(unpackedMessage.toString('utf-8'));
@@ -139,16 +139,16 @@ export async function unpackMessage(configJson: WalletConfig, credentialsJson: W
   }
 }
 
-export async function packMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, outboundMessage: OutboundMessage) {
+export async function packMessage(outboundMessage: OutboundMessage) {
   try {
     const { routingKeys, recipientKeys, senderVk, payload } = outboundMessage;
     const buf = Buffer.from(JSON.stringify(payload));
     let packedBufferMessage;
     if (Platform.OS === 'ios') {
-      packedBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(payload), recipientKeys, senderVk)
+      packedBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(payload), recipientKeys, senderVk)
     }
     else {
-      packedBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(buf), recipientKeys, senderVk)
+      packedBufferMessage = await ArnimaSdk.packMessage(Array.from(buf), recipientKeys, senderVk)
     }
     const packedMessage = Buffer.from(packedBufferMessage);
     const outboundPackedMessage = JSON.parse(packedMessage.toString('utf-8'));
@@ -161,10 +161,10 @@ export async function packMessage(configJson: WalletConfig, credentialsJson: Wal
         const forwardMessageBuffer = Buffer.from(JSON.stringify(forwardMessage));
         let forwardBufferMessage;
         if (Platform.OS === 'ios') {
-          forwardBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(forwardMessage), [routingKey], senderVk)
+          forwardBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(forwardMessage), [routingKey], senderVk)
         }
         else {
-          forwardBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(forwardMessageBuffer), [routingKey], senderVk)
+          forwardBufferMessage = await ArnimaSdk.packMessage(Array.from(forwardMessageBuffer), [routingKey], senderVk)
         }
         const forwardPackedMessage = Buffer.from(forwardBufferMessage);
         message = JSON.parse(forwardPackedMessage.toString('utf-8'));
@@ -233,8 +233,8 @@ export function createOutboundMessage(connection: Connection, payload: Object, i
   };
 }
 
-export async function sendOutboundMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, connection: Connection, message: Object, invitation?: Message) {
+export async function sendOutboundMessage(connection: Connection, message: Object, invitation?: Message) {
   const outboundMessage = await createOutboundMessage(connection, message, invitation);
-  const outboundPackMessage = await packMessage(configJson, credentialsJson, outboundMessage);
+  const outboundPackMessage = await packMessage(outboundMessage);
   await OutboundAgentMessage(outboundMessage.endpoint, 'POST', JSON.stringify(outboundPackMessage));
 }

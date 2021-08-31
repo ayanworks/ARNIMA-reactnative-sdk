@@ -71,8 +71,6 @@ class WalletService {
       }
 
       await WalletStorageService.addWalletRecord(
-        config,
-        credentials,
         RecordType.MediatorAgent,
         '1',
         JSON.stringify(walletRecord),
