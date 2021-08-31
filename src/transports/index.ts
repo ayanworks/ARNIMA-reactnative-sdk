@@ -112,7 +112,6 @@ class InboundMessageHandler {
       }
       for (let i = 0; i < unprocessedMessages.length; i++) {
         this.isProcess = true;
-
         if (unprocessedMessages[i].tags.autoProcessed === 'true') {
           const messageRecord = JSON.parse(unprocessedMessages[i].value);
           const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord.msg);         
