@@ -101,12 +101,28 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void createWallet(String walletConfig, String walletCredentials, Promise promise) {
-        try {
-            Wallet.createWallet(walletConfig, walletCredentials).get();
-            promise.resolve(null);
-        } catch (Exception e) {
-            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
-            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        new CreateWallet().execute(walletConfig, walletCredentials, promise);
+    }
+
+    private class CreateWallet extends AsyncTask {
+        Promise promise = null;
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            try {
+                promise = (Promise) objects[2];
+                Wallet.createWallet(objects[0].toString(), objects[1].toString()).get();
+                promise.resolve(null);
+            } catch (Exception e) {
+                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+            }
+            return promise;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
         }
     }
 
@@ -187,7 +203,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
                                     Boolean createMasterSecret, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = getWalletHandle(promise);
+            wallet = openWallet(walletConfig, walletCredentials ,promise);
             if (wallet != null) {
                 DidResults.CreateAndStoreMyDidResult createMyDidResult = Did
                         .createAndStoreMyDid(wallet, didJson).get();
@@ -265,7 +281,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void getWalletHandleRecordFromQuery(String recordType, String query,
+    public void getWalletRecordFromQuery(String recordType, String query,
                                                Promise promise) {
         Wallet wallet = null;
         try {
