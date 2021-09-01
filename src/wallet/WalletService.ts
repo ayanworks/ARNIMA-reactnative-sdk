@@ -19,18 +19,20 @@ class WalletService {
         JSON.stringify(config),
         JSON.stringify(credentials)
       );
-      return await this.createWalletDidStore(config, credentials, {}, true, label);
+      return await this.createWalletDidStore(config, credentials, { }, true, label);
     } catch (error) {
       console.log('WalletService - Create wallet error = ', error);
       throw (error);
     }
   }
 
-  async createWalletDidStore(config: WalletConfig,
+  async createWalletDidStore(
+    config: WalletConfig,
     credentials: WalletCredentials,
     didJson: DidJson,
     createMasterSecret: boolean,
-    label: string): Promise<string[]> {
+    label: string
+  ): Promise<string[]> {
 
     const response: string[] = await ArnimaSdk.createAndStoreMyDid(
       JSON.stringify(config),

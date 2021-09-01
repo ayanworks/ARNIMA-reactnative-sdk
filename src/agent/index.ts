@@ -263,11 +263,7 @@ class Agent {
 
   getAllCredential = async (filter?: Object) => {
     try {
-      const getCredentials = await ArnimaSdk.proverGetCredentials(
-        this.wallet.walletConfig,
-        this.wallet.walletCredentials,
-        JSON.stringify(filter)
-      );
+      const getCredentials = await ArnimaSdk.proverGetCredentials(JSON.stringify(filter));
       return JSON.parse(getCredentials);
     } catch (error) {
       console.log("Agent - List all credentials error = ", error);

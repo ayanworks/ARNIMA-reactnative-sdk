@@ -264,7 +264,14 @@ class ConnectionService {
     organizationId?: string,
   ): Promise<Connection> {
     try {
-      const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(JSON.stringify(didJson), false);
+      const wallet: any = await DatabaseServices.getWallet();
+
+      const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
+        wallet.walletConfig,
+        wallet.walletCredentials,
+        JSON.stringify(didJson),
+        false
+      );
 
       const apiBody = {
         publicVerkey: DatabaseServices.getVerKey(),
