@@ -177,8 +177,7 @@ class InboundMessageHandler {
               const connection = await CredentialService.requestReceived(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse, unprocessedMessages[i].id);
               const event: EventInterface = {
                 message: `You have received a credential from ${connection.theirLabel}`,
-                theirLabel: connection.theirLabel,
-                messageData: JSON.stringify({})
+                messageData: JSON.stringify({connection})
               }
               EventRegister.emit('SDKEvent', event);
               break;
@@ -208,8 +207,7 @@ class InboundMessageHandler {
               const connection = await PresentationService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unprocessedMessages[i].id, unpackMessageResponse);
               const event: EventInterface = {
                 message: `You have received a proof request from ${connection.theirLabel}`,
-                theirLabel: connection.theirLabel,
-                messageData: JSON.stringify({})
+                messageData: JSON.stringify({connection})
               }
               EventRegister.emit('SDKEvent', event);
               break;
