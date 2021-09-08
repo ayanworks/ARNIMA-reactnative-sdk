@@ -232,7 +232,10 @@ class PresentationService {
       const query = {
         connectionId: recipient_verkey
       }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      let connection: Connection;
+      if (recipient_verkey !== null) {
+        connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      }
       const message: Message = inboundMessage.message;
       const presentationRequest = message['request_presentations~attach'];
       const proofRequest = await decodeBase64(presentationRequest[0].data.base64);
@@ -267,7 +270,6 @@ class PresentationService {
         this.generateCredDefJson(credentialObjects, poolName, poolConfig, sdkDB.publicDid)]
       );
 
-
       const presentation = await ArnimaSdk.proverCreateProof(
         JSON.stringify(configJson),
         JSON.stringify(credentialsJson),
@@ -278,14 +280,18 @@ class PresentationService {
         JSON.stringify(credDefs),
         JSON.stringify(revocStates),
       );
-      const presentProofRecord: Presentation = await {
-        connectionId: connection.verkey,
-        theirLabel: connection.theirLabel,
-        threadId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
-        presentationRequest: proofRequest,
-        presentation: JSON.parse(presentation),
-        state: PresentationState.STATE_PRESENTATION_SENT,
-        updatedAt: new Date().toISOString(),
+      //TODO: handle for out of band message   
+      let presentProofRecord: Presentation;
+      if (recipient_verkey !== null) {
+        presentProofRecord = {
+          connectionId: connection.verkey,
+          theirLabel: connection.theirLabel,
+          threadId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
+          presentationRequest: proofRequest,
+          presentation: JSON.parse(presentation),
+          state: PresentationState.STATE_PRESENTATION_SENT,
+          updatedAt: new Date().toISOString(),
+        }
       }
       const creatPresentationMessageObject = await creatPresentationMessage(
         presentation,
@@ -293,16 +299,18 @@ class PresentationService {
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
       );
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, creatPresentationMessageObject)
+      await sendOutboundMessage(configJson, credentialsJson, connection, creatPresentationMessageObject, undefined, message['~service'])
 
-      await WalletStorageService.updateWalletRecord(
-        configJson,
-        credentialsJson,
-        RecordType.Presentation,
-        message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
-        JSON.stringify(presentProofRecord),
-        '{}'
-      );
+      if (recipient_verkey !== null) {
+        await WalletStorageService.updateWalletRecord(
+          configJson,
+          credentialsJson,
+          RecordType.Presentation,
+          message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
+          JSON.stringify(presentProofRecord),
+          '{}'
+        );
+      }
       return true;
     }
     catch (error) {
