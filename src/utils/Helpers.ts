@@ -145,7 +145,7 @@ export async function unpackMessage(configJson: WalletConfig, credentialsJson: W
 export async function packMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, outboundMessage: OutboundMessage) {
   try {
     const { routingKeys, recipientKeys, senderVk, payload } = outboundMessage;
-    console.log("outboundMessage", outboundMessage)
+    console.log("outboundMessage", JSON.stringify(outboundMessage, null, 2))
     const buf = Buffer.from(JSON.stringify(payload));
     let packedBufferMessage;
     if (Platform.OS === 'ios') {
@@ -209,11 +209,13 @@ export function encodeBase64(data: string) {
 }
 
 export function createOutboundMessage(connection: Connection, payload: Object, invitation?: Message) {
-  if (connection.didDoc.service[0].serviceEndpoint == 'didcomm:transport/queue') {
+  const shouldUseReturnRoute = Boolean(connection.didDoc.service.find((s) => s.serviceEndpoint === ''))
+  if (shouldUseReturnRoute) {
     payload['~transport'] = {
       return_route: 'all'
     }
   }
+
   if (invitation) {
     const { recipientKeys, routingKeys, serviceEndpoint } = invitation;
     return {
@@ -232,6 +234,7 @@ export function createOutboundMessage(connection: Connection, payload: Object, i
     throw new Error(`DidDoc for connection with verkey ${connection.verkey} not found!`);
   }
   const { service } = theirDidDoc
+
   return {
     connection,
     endpoint: service[0].serviceEndpoint,
@@ -242,7 +245,13 @@ export function createOutboundMessage(connection: Connection, payload: Object, i
   };
 }
 
-export async function sendOutboundMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, connection: Connection, message: Object, invitation?: Message) {
+export async function sendOutboundMessage(
+  configJson: WalletConfig,
+  credentialsJson: WalletCredentials,
+  connection: Connection,
+  message: Object,
+  invitation?: Message
+) {
   const outboundMessage = await createOutboundMessage(connection, message, invitation);
   const outboundPackMessage = await packMessage(configJson, credentialsJson, outboundMessage);
   await OutboundAgentMessage(outboundMessage.endpoint, 'POST', JSON.stringify(outboundPackMessage));

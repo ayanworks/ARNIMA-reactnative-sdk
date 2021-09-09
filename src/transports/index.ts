@@ -95,16 +95,16 @@ class InboundMessageHandler {
     }
   }
 
-  inboundMessageListener = EventRegister.addEventListener('proceedInboundMessage', () => {
+  inboundMessageListener = EventRegister.addEventListener('proceedInboundMessage', async () => {
     if (this.isProcess === false) {
-      this.proceedInboundMessage();
+      await this.proceedInboundMessage();
     }
   });
 
   inboundMessageStatusListener = EventRegister.addEventListener('inboundMessageStatusListener', async () => {
     const unprocessedMessages: Array<Record> = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, '{}');
     if (this.isProcess === false && unprocessedMessages.length > 0) {
-      this.proceedInboundMessage();
+      await this.proceedInboundMessage();
     }
   });
 

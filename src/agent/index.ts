@@ -65,6 +65,15 @@ class Agent {
     }
   }
 
+  sendImplicitMessages = async (mediatorConnection: Connection) => {
+    try {
+      await MediatorService.sendImplicitMessages(mediatorConnection);
+    } catch (error) {
+      console.log("Agent - pickupMessages error = ", error);
+      throw error;
+    }
+  }
+
   updateMediator = async (url: string, apiType: string, apiBody: string) => {
     try {
       return await MediatorService.updateMediator(url, apiType, apiBody);

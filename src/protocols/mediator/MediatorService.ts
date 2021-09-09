@@ -11,10 +11,29 @@ import WalletStorageService from 'react-native-arnima-sdk/src/wallet/WalletStora
 import { createBatchPickupMessage, createKeylistUpdateMessage, createMediationRequestMessage } from "react-native-arnima-sdk/src/protocols/mediator/MediationMessages";
 import { Connection } from "react-native-arnima-sdk/src/protocols/connection/ConnectionInterface";
 import { NativeModules } from "react-native";
+import { createTrustPingMessage } from "react-native-arnima-sdk/src/protocols/trustPing/TrustPingMessages";
 
 const { ArnimaSdk } = NativeModules;
 
 class MediatorService {
+
+  async sendImplicitMessages(mediatorConnection: Connection) {
+    try {
+      const myWallet: any = DatabaseServices.getWallet();
+
+      const trustPingMessage = await createTrustPingMessage(false);
+
+      await sendOutboundMessage(
+        JSON.parse(myWallet.walletConfig),
+        JSON.parse(myWallet.walletConfig),
+        mediatorConnection,
+        trustPingMessage
+      );
+    } catch (err) {
+      console.log('sendImplicitMessage Error: ', err);
+      throw err;
+    }
+  }
 
   async mediationRequest(connection: Connection) {
     const myWallet: any = DatabaseServices.getWallet();
@@ -71,7 +90,8 @@ class MediatorService {
   async getRouting() {
     try {
       const myWallet: any = DatabaseServices.getWallet();
-      const endpoint = myWallet.serviceEndpoint !== "" ? myWallet.serviceEndpoint : 'didcomm:transport/queue'
+      const endpoint = myWallet.serviceEndpoint !== "" ? myWallet.serviceEndpoint : ''
+
       const routingKeys: string[] = myWallet.routingKey !== '' ? [myWallet.routingKey] : []
       const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
         myWallet.walletConfig,

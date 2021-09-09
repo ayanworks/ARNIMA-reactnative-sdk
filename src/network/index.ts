@@ -44,8 +44,9 @@ export const OutboundAgentMessage: Function = async (url: string, apiType: strin
       try {
         const wireMessage = JSON.parse(responseMessage)
         console.log(`Response received`, wireMessage)
-        await InboundMessageService.addMessages(wireMessage)
-        // this.agent.receiveMessage(wireMessage)
+        if (wireMessage.hasOwnProperty('tag')) {
+          await InboundMessageService.addMessages(wireMessage)
+        }
       } catch (error) {
         console.log('Unable to parse response message', error)
       }
@@ -54,6 +55,10 @@ export const OutboundAgentMessage: Function = async (url: string, apiType: strin
     }
   } catch (error) {
     console.log('Error OutboundAgentMessage', error)
-    throw new Error('We are not able to communicate with the agent at this moment, Please try again later');
+    if (error.name == 'AbortError') {
+      console.log('Signal aborted')
+    } else {
+      throw new Error('We are not able to communicate with the agent at this moment, Please try again later');
+    }
   }
 };
