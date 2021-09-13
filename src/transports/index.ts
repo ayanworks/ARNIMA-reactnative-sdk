@@ -118,7 +118,7 @@ class InboundMessageHandler {
       JSON.stringify(message),
       JSON.stringify(ssiMessageTags)
     );
-    EventRegister.emit('proceedInboundMessage', `proceedInboundMessage`);
+    EventRegister.emit('inboundMessageStatusListener', `inboundMessageStatusListener`);
   }
 
   proceedInboundMessage = async () => {
