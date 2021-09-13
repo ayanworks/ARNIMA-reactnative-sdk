@@ -91,18 +91,13 @@ class InboundMessageHandler {
         inboxId: inboxId
       };
       this.socket.emit('receiveAcknowledgement', apiBody);
-      EventRegister.emit('proceedInboundMessage', `proceedInboundMessage`);
+      EventRegister.emit('inboundMessageStatusListener', `inboundMessageStatusListener`);
     }
   }
 
-  inboundMessageListener = EventRegister.addEventListener('proceedInboundMessage', async () => {
-    if (this.isProcess === false) {
-      await this.proceedInboundMessage();
-    }
-  });
-
   inboundMessageStatusListener = EventRegister.addEventListener('inboundMessageStatusListener', async () => {
-    const unprocessedMessages: Array<Record> = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, '{}');
+    const query: Object = { isProcessed: JSON.stringify(false) }
+    const unprocessedMessages: Array<Record> = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify(query));
     if (this.isProcess === false && unprocessedMessages.length > 0) {
       await this.proceedInboundMessage();
     }
@@ -127,6 +122,7 @@ class InboundMessageHandler {
   }
 
   proceedInboundMessage = async () => {
+
     try {
       const query: Object = { isProcessed: JSON.stringify(false) }
       let unprocessedMessages: Array<Record> = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, JSON.stringify(query));
@@ -143,6 +139,19 @@ class InboundMessageHandler {
           replaceDidSovPrefixOnMessage(message);
           console.log('Message Type = ', message['@type']);
           console.log('unpackMessageResponse', JSON.stringify(message, null, 2));
+          const query = {
+            connectionId: unpackMessageResponse.recipient_verkey
+          }
+
+          const connection = await WalletStorageService.getWalletRecordFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, JSON.stringify(query));
+          console.log('connection', typeof connection)
+          if (connection.length === 0 || connection.verkey === '') {
+            console.log('Connection not found')
+            await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id);
+            this.isProcess = false;
+            return;
+          }
+
           switch (message['@type']) {
             case MessageType.ConnectionResponse: {
               const isCompleted = await ConnectionService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse);
@@ -162,17 +171,12 @@ class InboundMessageHandler {
                 messageData: JSON.stringify({})
               }
               EventRegister.emit('SDKEvent', event);
-              console.log("Connected...");
+              console.log("Connected by scanning the QR code ...");
               break;
             }
             case MessageType.TrustPingResponseMessage: {
               const connection: Connection = await TrustPingService.saveTrustPingResponse(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse);
               if (connection !== null) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
-              const event: EventInterface = {
-                message: `You are now connected with ${connection.theirLabel}`,
-                messageData: JSON.stringify({})
-              }
-              EventRegister.emit('SDKEvent', event);
               break;
             }
             case MessageType.OfferCredential: {
@@ -193,10 +197,9 @@ class InboundMessageHandler {
                 JSON.stringify(ssiMessageTags)
               );
               const connection = await CredentialService.requestReceived(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse, unprocessedMessages[i].id);
-
               const event: EventInterface = {
                 message: `You have received a credential from ${connection.theirLabel}`,
-                messageData: JSON.stringify({})
+                messageData: JSON.stringify({connection})
               }
               EventRegister.emit('SDKEvent', event);
               break;
@@ -226,7 +229,7 @@ class InboundMessageHandler {
               const connection = await PresentationService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unprocessedMessages[i].id, unpackMessageResponse);
               const event: EventInterface = {
                 message: `You have received a proof request from ${connection.theirLabel}`,
-                messageData: JSON.stringify({})
+                messageData: JSON.stringify({connection})
               }
               EventRegister.emit('SDKEvent', event);
               break;
