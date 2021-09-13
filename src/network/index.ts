@@ -28,9 +28,8 @@ export const NetworkServices: Function = async (url: string, apiType: string, ap
 export const OutboundAgentMessage: Function = async (url: string, apiType: string, apiBody: string) => {
   try {
     console.log("url", url)
-    console.log("apiBody", apiBody)
     const abortController = new AbortController()
-    const id = setTimeout(() => abortController.abort(), 15000)
+    const id = setTimeout(() => abortController.abort(), 4000)
     const response = await fetch(url, {
       method: 'POST',
       body: apiBody,
@@ -40,10 +39,9 @@ export const OutboundAgentMessage: Function = async (url: string, apiType: strin
     clearTimeout(id)
     const responseMessage = await response.text()
     if (responseMessage) {
-      console.log(`Response received`, { responseMessage, status: response.status })
+      console.log(`Response received`)
       try {
         const wireMessage = JSON.parse(responseMessage)
-        console.log(`Response received`, wireMessage)
         if (wireMessage.hasOwnProperty('tag')) {
           await InboundMessageService.addMessages(wireMessage)
         }

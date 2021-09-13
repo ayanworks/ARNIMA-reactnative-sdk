@@ -144,7 +144,6 @@ class InboundMessageHandler {
           }
 
           const connection = await WalletStorageService.getWalletRecordFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, JSON.stringify(query));
-          console.log('connection', typeof connection)
           if (connection.length === 0 || connection.verkey === '') {
             console.log('Connection not found')
             await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id);

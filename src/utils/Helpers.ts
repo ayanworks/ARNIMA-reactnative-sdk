@@ -189,8 +189,13 @@ export function getServiceEndpoint() {
 }
 
 export function decodeInvitationFromUrl(invitationUrl: string) {
-  const [, encodedInvitation] = invitationUrl.split('c_i=');
-  return JSON.parse(Buffer.from(encodedInvitation, 'base64').toString());
+  if (invitationUrl.includes("?c_i=")) {
+    const [, encodedInvitation] = invitationUrl.split('c_i=');
+    return JSON.parse(Buffer.from(encodedInvitation, 'base64').toString());
+  } else if (invitationUrl.includes("?d_m=")) {
+    const [encodedInvitation] = invitationUrl.split('=')[1].split('%');
+    return JSON.parse(Buffer.from(encodedInvitation, 'base64').toString());
+  }
 }
 
 export function encodeInvitationToUrl(invitation: InvitationDetails): string {
