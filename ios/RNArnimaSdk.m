@@ -6,7 +6,7 @@
 #import "RNArnimaSdk.h"
 #import <React/RCTBridge.h>
 #import <Indy/Indy.h>
-
+#import "URLSessionWithRedirection.h"
 @implementation ArnimaSdk
 
 RCT_EXPORT_MODULE()
@@ -45,6 +45,38 @@ RCT_EXPORT_METHOD(openInitWallet: (NSString *)config
             }
         }];
     }
+}
+
+RCT_EXPORT_METHOD(getRequestRedirectionUrl:(NSString *)url
+                  resolver: (RCTPromiseResolveBlock) resolve
+                  rejecter: (RCTPromiseRejectBlock) reject)
+{
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+                                                          delegate:[URLSessionWithRedirection new]
+                                                     delegateQueue:[NSOperationQueue mainQueue]];
+
+
+  NSURL *urlObj = [NSURL URLWithString:url];
+  NSURLSessionDataTask *dataTask = [session dataTaskWithURL: urlObj
+                completionHandler:^(NSData *data, NSURLResponse *responseObj, NSError *error) {
+    if (error != nil) {
+        reject(@"Failed to fetch URL", @"Failed to fetch URL", error);
+      return;
+    }
+
+    NSHTTPURLResponse* response =(NSHTTPURLResponse*)responseObj;
+
+    long statusCode = (long)[response statusCode];
+
+    if (statusCode != 302) {
+    reject(@"Failed to fetch URL: unexpected response status", @"Failed to fetch URL: unexpected response status", error);
+      return;
+    }
+    NSDictionary* headers = [(NSHTTPURLResponse*)response allHeaderFields];
+    NSString* location = [headers objectForKey:@"location"];
+    resolve(location);
+  }];
+  [dataTask resume];
 }
 
 RCT_EXPORT_METHOD(createWallet:
