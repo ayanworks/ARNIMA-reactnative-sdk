@@ -42,6 +42,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Map;
@@ -797,6 +798,45 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
             buffer[i] = (byte) arr.getInt(i);
         }
         return buffer;
+    }
+
+
+    @ReactMethod
+    public void getRequestRedirectionUrl(String url, Promise promise) {
+        new GetRequestRedirectionUrl().execute(url, promise);
+    }
+
+    private class GetRequestRedirectionUrl extends AsyncTask {
+        Promise promise = null;
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            try {
+                promise = (Promise) objects[1];
+                URL urlObj = new URL(objects[0].toString());
+
+                HttpURLConnection connection = (HttpURLConnection) urlObj.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setInstanceFollowRedirects(false);
+
+                int responseCode = connection.getResponseCode();
+
+                if (responseCode == 302) {
+                    String location = connection.getHeaderField("location");
+                    promise.resolve(location);
+                }
+                promise.reject("Unable to fetch URL", "Unable to fetch URL");
+            } catch (Exception e) {
+                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+            }
+            return promise;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
     }
 
     class IndySdkRejectResponse {
