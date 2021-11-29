@@ -671,7 +671,9 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId, String credRevId,Promise promise)
+    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId,
+                                            String credRevId,
+            String fromTime,String toTime,Promise promise)
             throws Exception {
         Pool pool = null;
         JSONObject revocState = new JSONObject();
@@ -679,8 +681,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             pool = openPoolLedger(poolName, poolConfig, promise);
             if (pool != null) {
+                long from=Long.parseLong(fromTime);
+                long to=Long.parseLong(toTime);
+
                 String revocRegDeltaRequest = Ledger
-                        .buildGetRevocRegDeltaRequest(submitterDid, revRegId, 0, System.currentTimeMillis() / 1000).get();
+                    .buildGetRevocRegDeltaRequest(submitterDid, revRegId, from, to).get();
                 String revocRegDeltaResponse = Ledger.submitRequest(pool, revocRegDeltaRequest).get();
                 LedgerResults.ParseRegistryResponseResult revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(revocRegDeltaResponse)
                         .get();

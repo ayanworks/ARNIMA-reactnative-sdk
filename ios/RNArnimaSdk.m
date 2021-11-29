@@ -1058,6 +1058,8 @@ RCT_EXPORT_METHOD(createRevocationStateObject
                   :(NSString *) submitterDid
                   :(NSString *) revRegId
                   :(NSString *) credRevId
+                  :(NSString *) fromTime
+                  :(NSString *) toTime
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
@@ -1074,15 +1076,15 @@ RCT_EXPORT_METHOD(createRevocationStateObject
         }
     }];
     dispatch_semaphore_wait(openPoolSemaphore, DISPATCH_TIME_FOREVER);
-    
-    
-    NSTimeInterval timeStampDouble = [[NSDate date] timeIntervalSince1970];
-    NSNumber *timeStampNumber = [NSNumber numberWithInt: timeStampDouble];
-    
+
+    NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+    formatter.numberStyle = NSNumberFormatterDecimalStyle;
+    NSNumber *from = [formatter numberFromString:fromTime];
+    NSNumber *to = [formatter numberFromString:toTime];
     
     __block NSString *requestJSONRevDelta = [[NSString alloc] init];
     dispatch_semaphore_t buildRevRegSemaphore = dispatch_semaphore_create(0);
-    [IndyLedger buildGetRevocRegDeltaRequestWithSubmitterDid:submitterDid revocRegDefId:revRegId from:@(0) to:timeStampNumber completion:^(NSError *errorWhileRevRegDelRequest, NSString *generatedRequestJSON) {
+    [IndyLedger buildGetRevocRegDeltaRequestWithSubmitterDid:submitterDid revocRegDefId:revRegId from:from to:to completion:^(NSError *errorWhileRevRegDelRequest, NSString *generatedRequestJSON) {
         if(errorWhileRevRegDelRequest.code > 1) {
             [self closePool:poolHandle :errorWhileRevRegDelRequest :nil :NO resolve:resolve reject:reject];
 
