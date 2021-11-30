@@ -6,7 +6,7 @@
 #import "RNArnimaSdk.h"
 #import <React/RCTBridge.h>
 #import <Indy/Indy.h>
-
+#import "URLSessionWithRedirection.h"
 @implementation ArnimaSdk
 
 RCT_EXPORT_MODULE()
@@ -45,6 +45,38 @@ RCT_EXPORT_METHOD(openInitWallet: (NSString *)config
             }
         }];
     }
+}
+
+RCT_EXPORT_METHOD(getRequestRedirectionUrl:(NSString *)url
+                  resolver: (RCTPromiseResolveBlock) resolve
+                  rejecter: (RCTPromiseRejectBlock) reject)
+{
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]
+                                                          delegate:[URLSessionWithRedirection new]
+                                                     delegateQueue:[NSOperationQueue mainQueue]];
+
+
+  NSURL *urlObj = [NSURL URLWithString:url];
+  NSURLSessionDataTask *dataTask = [session dataTaskWithURL: urlObj
+                completionHandler:^(NSData *data, NSURLResponse *responseObj, NSError *error) {
+    if (error != nil) {
+        reject(@"Failed to fetch URL", @"Failed to fetch URL", error);
+      return;
+    }
+
+    NSHTTPURLResponse* response =(NSHTTPURLResponse*)responseObj;
+
+    long statusCode = (long)[response statusCode];
+
+    if (statusCode != 302) {
+    reject(@"Failed to fetch URL: unexpected response status", @"Failed to fetch URL: unexpected response status", error);
+      return;
+    }
+    NSDictionary* headers = [(NSHTTPURLResponse*)response allHeaderFields];
+    NSString* location = [headers objectForKey:@"location"];
+    resolve(location);
+  }];
+  [dataTask resume];
 }
 
 RCT_EXPORT_METHOD(createWallet:
@@ -577,9 +609,6 @@ RCT_EXPORT_METHOD(proverGetCredentials:
     
 }
 
-
-
-
 RCT_EXPORT_METHOD(getRevocRegDef:
                   (NSString *)submitterDid
                   :(NSString *)ID
@@ -667,12 +696,9 @@ RCT_EXPORT_METHOD(getRevocRegDefJson
     
     dispatch_semaphore_t submitReqSchemaSemaphore = dispatch_semaphore_create(0);
     
-    
     [IndyLedger submitRequest:requestJSONRevDef poolHandle:poolHandle completion:^(NSError *errorInSubmitRequest, NSString *generatedRequestResultJSON) {
         if(errorInSubmitRequest.code > 1) {
-
             [self closePool:poolHandle :errorInSubmitRequest :nil :NO resolve:resolve reject:reject];
-
         }
         else {
             requestResultJSONSchema = generatedRequestResultJSON;
@@ -680,20 +706,25 @@ RCT_EXPORT_METHOD(getRevocRegDefJson
         }
     }];
     dispatch_semaphore_wait(submitReqSchemaSemaphore, DISPATCH_TIME_FOREVER);
+    
     dispatch_semaphore_t parseSchemaResponseSemaphore = dispatch_semaphore_create(0);
-    [IndyLedger parseGetSchemaResponse:requestResultJSONSchema completion:^(NSError *errorInParseSchemaResponse, NSString *schemaId, NSString *generatedSchemaJson) {
-        if(errorInParseSchemaResponse.code > 1) {
-
-            [self closePool:poolHandle :errorInParseSchemaResponse :nil :NO resolve:resolve reject:reject];
-
+    __block NSString *returnCall = [[NSString alloc] init];
+    
+    [IndyLedger parseGetRevocRegDefResponse:requestResultJSONSchema completion:^(NSError *error, NSString *revocRegDefId, NSString *revocRegDefJson) {
+        if(error.code > 1) {
+            returnCall = @"YES";
+            dispatch_semaphore_signal(parseSchemaResponseSemaphore);
+            [self closePool:poolHandle :error :nil :NO resolve:resolve reject:reject];
         }
         else {
-            [self closePool:poolHandle :nil :generatedSchemaJson :YES resolve:resolve reject:reject];
+            [self closePool:poolHandle :nil :revocRegDefJson :YES resolve:resolve reject:reject];
             dispatch_semaphore_signal(parseSchemaResponseSemaphore);
         }
     }];
     dispatch_semaphore_wait(parseSchemaResponseSemaphore, DISPATCH_TIME_FOREVER);
-    
+    if ([returnCall  isEqual: @"YES"]) {
+            return;
+        }
 }
 
 
@@ -930,22 +961,26 @@ RCT_EXPORT_METHOD(getSchemasJson
     dispatch_semaphore_wait(submitReqSchemaSemaphore, DISPATCH_TIME_FOREVER);
     
     __block NSString *schemaJSON = [[NSString alloc] init];
-    
     dispatch_semaphore_t parseSchemaResponseSemaphore = dispatch_semaphore_create(0);
+    __block NSString *returnCall = [[NSString alloc] init];
     [IndyLedger parseGetSchemaResponse:requestResultJSONSchema completion:^(NSError *errorInParseSchemaResponse, NSString *schemaId, NSString *generatedSchemaJson) {
         if(errorInParseSchemaResponse.code > 1) {
+            dispatch_semaphore_signal(parseSchemaResponseSemaphore);
+            returnCall = @"YES";
             [self closePool:poolHandle :errorInParseSchemaResponse :nil :NO resolve:resolve reject:reject];
-
         }
         else {
             schemaJSON = generatedSchemaJson;
             dispatch_semaphore_signal(parseSchemaResponseSemaphore);
 
             [self closePool:poolHandle :nil :generatedSchemaJson :YES resolve:resolve reject:reject];
-
         }
     }];
     dispatch_semaphore_wait(parseSchemaResponseSemaphore, DISPATCH_TIME_FOREVER);
+    
+    if ([returnCall  isEqual: @"YES"]) {
+        return;
+    }
     
 }
 

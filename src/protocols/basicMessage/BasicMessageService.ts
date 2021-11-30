@@ -42,8 +42,6 @@ class BasicMessageService {
       }
       const chatThread: Array<Object> = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.BasicMessage, JSON.stringify(query));
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, basicMessage)
-
       if (chatThread === undefined || chatThread === null || chatThread.length == 0) {
         await WalletStorageService.addWalletRecord(
           configJson,
@@ -65,12 +63,16 @@ class BasicMessageService {
           JSON.stringify(basicMessageTags)
         );
       }
+      setTimeout(async ()=> {
+        await sendOutboundMessage(configJson, credentialsJson, connection, basicMessage)
+      },50)
       return true;
     } catch (error) {
       console.log('Basic message - Send message error = ', error);
       throw error;
     }
   }
+
 
   /**
    * @description Process basic message and update the record
