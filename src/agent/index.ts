@@ -25,6 +25,10 @@ const { ArnimaSdk } = NativeModules;
 class Agent {
   wallet: any = DatabaseServices.getWallet();
 
+  getRequestRedirectionUrl = async (url: string) => {
+    return await ArnimaSdk.getRequestRedirectionUrl(url)
+  }
+
   createWallet = async (config: WalletConfig, credentials: WalletCredentials, label: string) => {
     try {
       return await WalletService.createWallet(config, credentials, label);
@@ -155,7 +159,7 @@ class Agent {
   deleteConnection = async (connectionId: string) => {
     try {
       const records = await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Credential, JSON.stringify({ connectionId: connectionId }));
-      if (records !== null) {
+      if (records === null || records.length === 0) {
         await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, connectionId);
         return true;
       } else {
@@ -300,6 +304,16 @@ class Agent {
       );
     } catch (error) {
       console.log('Agent - Send propose presentation error = ', error);
+      throw error;
+    }
+  }
+
+  sendOutOfBandProof = async (inboundMessage: InboundMessage, revealAttributes: boolean, presentationObj: object) => {
+    try {
+      const response: Boolean = await PresentationService.createPresentation(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), inboundMessage, revealAttributes, presentationObj);
+      return response;
+    } catch (error) {
+      console.log('Agent - Send proof error = ', error);
       throw error;
     }
   }
