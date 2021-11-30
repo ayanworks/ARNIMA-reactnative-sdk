@@ -681,8 +681,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             pool = openPoolLedger(poolName, poolConfig, promise);
             if (pool != null) {
-                long from=Long.parseLong(fromTime);
+                long from = Long.parseLong(fromTime);
                 long to=Long.parseLong(toTime);
+                if (from == to) {
+                  from = 0;
+                }
 
                 String revocRegDeltaRequest = Ledger
                     .buildGetRevocRegDeltaRequest(submitterDid, revRegId, from, to).get();
