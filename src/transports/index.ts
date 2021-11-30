@@ -114,7 +114,7 @@ class InboundMessageHandler {
         this.isProcess = true;
         if (unprocessedMessages[i].tags.autoProcessed === 'true') {
           const messageRecord = JSON.parse(unprocessedMessages[i].value);
-          const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord.msg);         
+          const unpackMessageResponse = await unpackMessage(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), messageRecord.msg);
           const message = JSON.parse(unpackMessageResponse.message);
 
           const query = {
@@ -146,7 +146,7 @@ class InboundMessageHandler {
               if (connection !== null) { await WalletStorageService.deleteWalletRecord(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.SSIMessage, unprocessedMessages[i].id) }
               const event: EventInterface = {
                 message: `You are now connected with ${connection.theirLabel}`,
-                messageData: JSON.stringify({})
+                type: 'Connection',
               }
               EventRegister.emit('SDKEvent', event);
               console.log("Connected by scanning the QR code ...");
@@ -177,7 +177,8 @@ class InboundMessageHandler {
               const connection = await CredentialService.requestReceived(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unpackMessageResponse, unprocessedMessages[i].id);
               const event: EventInterface = {
                 message: `You have received a credential from ${connection.theirLabel}`,
-                messageData: JSON.stringify({connection})
+                type: 'Credential',
+                messageData: JSON.stringify({ connection })
               }
               EventRegister.emit('SDKEvent', event);
               break;
@@ -207,7 +208,8 @@ class InboundMessageHandler {
               const connection = await PresentationService.processRequest(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unprocessedMessages[i].id, unpackMessageResponse);
               const event: EventInterface = {
                 message: `You have received a proof request from ${connection.theirLabel}`,
-                messageData: JSON.stringify({connection})
+                type: 'Proof Request',
+                messageData: JSON.stringify({ connection })
               }
               EventRegister.emit('SDKEvent', event);
               break;
@@ -217,7 +219,8 @@ class InboundMessageHandler {
 
               const event: EventInterface = {
                 message: 'Your proof is verified successfully',
-                messageData: JSON.stringify({})
+                type: 'Proof Status',
+                messageData: JSON.stringify({ connection })
               }
               EventRegister.emit('SDKEvent', event);
               break;
@@ -242,7 +245,8 @@ class InboundMessageHandler {
               const connection = await PresentationService.requestReceived(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), unprocessedMessages[i].id, unpackMessageResponse);
               const event: EventInterface = {
                 message: `You have received a proof request to verify from ${connection.theirLabel}`,
-                messageData: JSON.stringify({})
+                type: 'Verify Proof',
+                messageData: JSON.stringify({ connection })
               }
               EventRegister.emit('SDKEvent', event);
               break;
@@ -258,8 +262,9 @@ class InboundMessageHandler {
 
               const event: EventInterface = {
                 message: `You have received a message from ${connection.theirLabel}`,
+                type: 'Message',
                 connectionId: connection.verkey,
-                messageData: JSON.stringify({})
+                messageData: JSON.stringify({ connection })
               }
               EventRegister.emit('SDKEvent', event);
               break;

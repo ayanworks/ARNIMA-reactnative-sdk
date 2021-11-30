@@ -326,6 +326,7 @@ class CredentialService {
 
       const event: EventInterface = {
         message: `${issueCredentialRecord.credentialDefinitionId.split(':')[4].split('_').join(' ')} credential successfully stored in your wallet.`,
+        type: 'Credential Stored',
         messageData: JSON.stringify({
           issueCredentialId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
           issueCredential: JSON.stringify(issueCredentialRecord)
