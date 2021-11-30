@@ -389,15 +389,18 @@ class PresentationService {
       isNeedToCreateMasterRevocObj = masterObjectDetails.isNeedToCreateMasterRevocObj;
       fromTime = masterObjectDetails.fromTime;
       toTime = masterObjectDetails.toTime;
-
       for (const [key, value] of Object.entries(proofRequest.requested_attributes)) {
         if (value?.non_revoked) {
-          if (value.non_revoked.from) {
-            fromTime = value.non_revoked.from;
-          } else {
-            fromTime = value.non_revoked.to;
-          }
+          fromTime = value.non_revoked.from ?? value.non_revoked.to;
           toTime = value.non_revoked.to;
+        } else {
+          if (isNeedToCreateMasterRevocObj) {
+            fromTime = masterObjectDetails.toTime;
+            toTime = masterObjectDetails.toTime;
+          } else {
+            fromTime = undefined;
+            toTime = undefined;
+          }
         }
         let credentialMatch: Credential | null = null
         const credentials = await this.getCredentialsForProofRequest(proofRequest, key)
@@ -450,7 +453,7 @@ class PresentationService {
 
           if (credentialMatch.cred_info.rev_reg_id !== null) {
             if (credentialMatch.cred_info.rev_reg_id !== revRegIdMatcher) {
-              if (isNeedToCreateMasterRevocObj) {
+              if (fromTime && toTime) {
                 const revocStateObject = await ArnimaSdk.createRevocationStateObject(
                   poolName,
                   poolConfig,
@@ -486,8 +489,22 @@ class PresentationService {
         }
       }
 
-      for (const [referent, requestedPredicate] of Object.entries(proofRequest.requested_predicates)) {
-        const credentials = await this.getCredentialsForProofRequest(proofRequest, referent)
+      for (const [key, value] of Object.entries(proofRequest.requested_predicates)) {
+
+        if (value?.non_revoked) {
+          fromTime = value.non_revoked.from ?? value.non_revoked.to;
+          toTime = value.non_revoked.to;
+        } else {
+          if (isNeedToCreateMasterRevocObj) {
+            fromTime = masterObjectDetails.toTime;
+            toTime = masterObjectDetails.toTime;
+          } else {
+            fromTime = undefined;
+            toTime = undefined;
+          }
+        }
+
+        const credentials = await this.getCredentialsForProofRequest(proofRequest, key)
         let credMatch: Credential | null = null
         if (credentials.length === 0) {
           const errorObject = {
@@ -497,7 +514,7 @@ class PresentationService {
         } else if (presentationProposal === undefined) {
           credMatch = credentials[0];
         } else {
-          const names = requestedPredicate.names ?? [requestedPredicate.name]
+          const names = value.names ?? [value.name]
 
           for (const credential of credentials) {
             const { attrs, cred_def_id } = credential.cred_info
@@ -524,7 +541,7 @@ class PresentationService {
           throw JSON.stringify(errorObject)
         }
 
-        if (requestedPredicate.restrictions) {
+        if (value.restrictions) {
           let timestampObj: {
             timestamp?: number
           } = {};
@@ -554,14 +571,14 @@ class PresentationService {
               revocStates[credMatch.cred_info.rev_reg_id] = revRegIdJsonMatcher
             }
           }
-          requestedCredentials.requested_predicates[referent] = {
+          requestedCredentials.requested_predicates[key] = {
             cred_id: credMatch.cred_info.referent,
             ...timestampObj
           }
         } else {
-          const value = credMatch.cred_info.attrs[requestedPredicate.name]
+          const nameValue = credMatch.cred_info.attrs[value.name]
 
-          requestedCredentials.self_attested_attributes[referent] = value
+          requestedCredentials.self_attested_attributes[key] = nameValue
         }
       }
       return [requestedCredentials, revocStates]

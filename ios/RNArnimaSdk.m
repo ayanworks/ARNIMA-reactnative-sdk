@@ -1079,7 +1079,13 @@ RCT_EXPORT_METHOD(createRevocationStateObject
 
     NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
     formatter.numberStyle = NSNumberFormatterDecimalStyle;
-    NSNumber *from = [formatter numberFromString:fromTime];
+    NSNumber *from;
+    if ([fromTime isEqualToString:toTime]) {
+        from = [formatter numberFromString:@"0"];
+    } else {
+        from = [formatter numberFromString:fromTime];
+    }
+    
     NSNumber *to = [formatter numberFromString:toTime];
     
     __block NSString *requestJSONRevDelta = [[NSString alloc] init];
