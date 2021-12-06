@@ -5,7 +5,6 @@
 package com.arnimasdk;
 
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
 
@@ -80,7 +79,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             Pool.setProtocolVersion(PROTOCOL_VERSION).get();
 
-            File file = new File(Environment.getExternalStorageDirectory() + "/" + File.separator + "tempPool.txn");
+            File file = new File(reactContext.getExternalFilesDir(null) + "/" + File.separator + "tempPool.txn");
 
             file.createNewFile();
 
