@@ -4,11 +4,11 @@
 */
 
 import { MessageType } from '../../utils/MessageType';
-import uuid from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 
 export function createBasicMessage(content: string) {
   return {
-    '@id': uuid(),
+    '@id': uuidv4(),
     '@type': MessageType.BasicMessage,
     '~l10n': { locale: 'en' },
     sent_time: new Date().toISOString(),
