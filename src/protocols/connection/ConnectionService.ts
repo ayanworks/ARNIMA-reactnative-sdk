@@ -211,7 +211,8 @@ class ConnectionService {
       );
       const event: EventInterface = {
         message: `You are now connected with ${connection.theirLabel}`,
-        messageData: JSON.stringify({})
+        type: 'Connection',
+        messageData: JSON.stringify({ connection }),
       }
       EventRegister.emit('SDKEvent', event);
       return true;

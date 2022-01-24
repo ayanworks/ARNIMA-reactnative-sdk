@@ -5,12 +5,12 @@
 
 import { encodeBase64 } from '../../utils/Helpers';
 import { MessageType } from '../../utils/MessageType';
-import uuid from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function createRequestCredentialMessage(data: string, comment: string, threadId: string) {
   return {
     '@type': MessageType.RequestCredential,
-    '@id': uuid(),
+    '@id': uuidv4(),
     '~thread': {
       thid: threadId,
     },
@@ -29,7 +29,7 @@ export async function createRequestCredentialMessage(data: string, comment: stri
 export async function storedCredentialAckMessage(threadId: string) {
   return {
     '@type': MessageType.CredentialAck,
-    '@id': uuid(),
+    '@id': uuidv4(),
     "status": "OK",
     '~thread': {
       thid: threadId,
@@ -48,7 +48,7 @@ export async function credentialProposalMessage(credentialProposal: object,
   const schema = schemaId.split(':');
   return {
     '@type': MessageType.ProposeCredential,
-    '@id': uuid(),
+    '@id': uuidv4(),
     'comment': comment,
     'credential_proposal': credentialProposal,
     'schema_issuer_did': schema[0],

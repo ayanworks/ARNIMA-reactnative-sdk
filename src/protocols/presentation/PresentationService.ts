@@ -224,7 +224,6 @@ class PresentationService {
    * @memberof PresentationService
    */
   async createPresentation(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage, revealAttributes: boolean = true, presentationObj?: object): Promise<Boolean> {
-
     try {
       // TODO : Need to find a way for realm db typing
       const sdkDB: any = DatabaseServices.getWallet();
@@ -264,7 +263,6 @@ class PresentationService {
         )
         credentialObjects.push(JSON.parse(credentialInfo))
       }
-      
       const [schemas, credDefs] = await Promise.all([
         this.generateSchemaJson(credentialObjects, poolName, poolConfig, sdkDB.publicDid),
         this.generateCredDefJson(credentialObjects, poolName, poolConfig, sdkDB.publicDid)]
@@ -347,6 +345,23 @@ class PresentationService {
     }
   }
 
+
+  getMasterNonRevocObjDetails = (proofRequest) => {
+    let isNeedToCreateMasterRevocObj = false
+    let fromTime;
+    let toTime;
+    if (proofRequest?.non_revoked) {
+      isNeedToCreateMasterRevocObj = true
+      fromTime = proofRequest.non_revoked?.from ?? proofRequest.non_revoked?.to
+      toTime = proofRequest.non_revoked?.to
+    }
+    return {
+      isNeedToCreateMasterRevocObj,
+      fromTime,
+      toTime
+    };
+  }
+
   public async getRequestedCredentialsForProofRequest(
     proofRequest: any,
     presentationProposal?: any,
@@ -364,10 +379,34 @@ class PresentationService {
       }
       let revRegIdMatcher: string = '';
       let revRegIdJsonMatcher: Object = {};
-      for (const [referent, requestedAttribute] of Object.entries(proofRequest.requested_attributes)) {
+
+      let isNeedToCreateMasterRevocObj = false;
+
+      let fromTime;
+      let toTime;
+
+      const masterObjectDetails = this.getMasterNonRevocObjDetails(proofRequest);
+      isNeedToCreateMasterRevocObj = masterObjectDetails.isNeedToCreateMasterRevocObj;
+      fromTime = masterObjectDetails.fromTime;
+      toTime = masterObjectDetails.toTime;
+      for (const [key, value] of Object.entries(proofRequest.requested_attributes)) {
+        if (value?.non_revoked) {
+          fromTime = value.non_revoked.from ?? value.non_revoked.to;
+          toTime = value.non_revoked.to;
+        } else {
+          if (isNeedToCreateMasterRevocObj) {
+            fromTime = masterObjectDetails.toTime;
+            toTime = masterObjectDetails.toTime;
+          } else {
+            fromTime = undefined;
+            toTime = undefined;
+          }
+        }
         let credentialMatch: Credential | null = null
-        const credentials = await this.getCredentialsForProofRequest(proofRequest, referent)
+        const credentials = await this.getCredentialsForProofRequest(proofRequest, key)
         if (credentials.length === 0) {
+          console.log('Could not automatically construct requested credentials for proof request 00');
+
           const errorObject = {
             message: 'Could not automatically construct requested credentials for proof request '
           }
@@ -375,54 +414,62 @@ class PresentationService {
         } else if (presentationProposal === undefined) {
           credentialMatch = credentials[0]
         } else {
-          const names = requestedAttribute.names ?? [requestedAttribute.name]
+          const names = value.names ?? [value.name]
 
           for (const credential of credentials) {
             const { attrs, cred_def_id } = credential.cred_info
             const isMatch = names.every((name) =>
               presentationProposal.attributes.find(
-                (a) =>
-                  a.name === name &&
-                  a.credentialDefinitionId === cred_def_id &&
-                  (!a.value || a.value === attrs[name])
+                (a) => {
+                  if (a.credentialDefinitionId !== undefined && a.credentialDefinitionId) {
+                    return a.name === name &&
+                      a.credentialDefinitionId === cred_def_id &&
+                      (!a.value || a.value === attrs[name])
+                  } else {
+                    return a.name === name;
+                  }
+                }
               )
             )
-
-
             if (isMatch) {
               credentialMatch = credential
               break
             }
           }
         }
-
         if (!credentialMatch) {
+          console.log('Could not automatically construct requested credentials for proof request 0');
+
           const errorObject = {
             message: 'Could not automatically construct requested credentials for proof request '
           }
           throw JSON.stringify(errorObject)
         }
 
-        if (requestedAttribute.restrictions) {
+        if (value.restrictions) {
           let timestampObj: {
             timestamp?: number
           } = {};
 
           if (credentialMatch.cred_info.rev_reg_id !== null) {
             if (credentialMatch.cred_info.rev_reg_id !== revRegIdMatcher) {
-              const revocStateObject = await ArnimaSdk.createRevocationStateObject(
-                poolName,
-                poolConfig,
-                publicDid,
-                credentialMatch.cred_info.rev_reg_id,
-                credentialMatch.cred_info.cred_rev_id,
-              )
-              const timestamp = Object.keys(JSON.parse(revocStateObject));
-              timestampObj.timestamp = parseInt(timestamp[0])
-              revocStates[credentialMatch.cred_info.rev_reg_id] = JSON.parse(revocStateObject)
-              // This is done to reduce the time for proof creation
-              revRegIdMatcher = credentialMatch.cred_info.rev_reg_id
-              revRegIdJsonMatcher = JSON.parse(revocStateObject)
+              if (fromTime && toTime) {
+                const revocStateObject = await ArnimaSdk.createRevocationStateObject(
+                  poolName,
+                  poolConfig,
+                  publicDid,
+                  credentialMatch.cred_info.rev_reg_id,
+                  credentialMatch.cred_info.cred_rev_id,
+                  fromTime.toString(),
+                  toTime.toString()
+                )
+                const timestamp = Object.keys(JSON.parse(revocStateObject));
+                timestampObj.timestamp = parseInt(timestamp[0])
+                revocStates[credentialMatch.cred_info.rev_reg_id] = JSON.parse(revocStateObject)
+                // This is done to reduce the time for proof creation
+                revRegIdMatcher = credentialMatch.cred_info.rev_reg_id
+                revRegIdJsonMatcher = JSON.parse(revocStateObject)
+              }
             } else {
               const timestamp = Object.keys(revRegIdJsonMatcher);
               timestampObj.timestamp = parseInt(timestamp[0])
@@ -430,20 +477,34 @@ class PresentationService {
             }
           }
 
-          requestedCredentials.requested_attributes[referent] = {
+          requestedCredentials.requested_attributes[key] = {
             cred_id: credentialMatch.cred_info.referent,
             revealed: revealAttributes,
             ...timestampObj
           }
         }
         else {
-          const value = credentialMatch.cred_info.attrs[requestedAttribute.name]
-          requestedCredentials.self_attested_attributes[referent] = value
+          const nameValue = credentialMatch.cred_info.attrs[value.name]
+          requestedCredentials.self_attested_attributes[key] = nameValue
         }
       }
 
-      for (const [referent, requestedPredicate] of Object.entries(proofRequest.requested_predicates)) {
-        const credentials = await this.getCredentialsForProofRequest(proofRequest, referent)
+      for (const [key, value] of Object.entries(proofRequest.requested_predicates)) {
+
+        if (value?.non_revoked) {
+          fromTime = value.non_revoked.from ?? value.non_revoked.to;
+          toTime = value.non_revoked.to;
+        } else {
+          if (isNeedToCreateMasterRevocObj) {
+            fromTime = masterObjectDetails.toTime;
+            toTime = masterObjectDetails.toTime;
+          } else {
+            fromTime = undefined;
+            toTime = undefined;
+          }
+        }
+
+        const credentials = await this.getCredentialsForProofRequest(proofRequest, key)
         let credMatch: Credential | null = null
         if (credentials.length === 0) {
           const errorObject = {
@@ -453,7 +514,7 @@ class PresentationService {
         } else if (presentationProposal === undefined) {
           credMatch = credentials[0];
         } else {
-          const names = requestedPredicate.names ?? [requestedPredicate.name]
+          const names = value.names ?? [value.name]
 
           for (const credential of credentials) {
             const { attrs, cred_def_id } = credential.cred_info
@@ -480,40 +541,44 @@ class PresentationService {
           throw JSON.stringify(errorObject)
         }
 
-        if (requestedPredicate.restrictions) {
+        if (value.restrictions) {
           let timestampObj: {
             timestamp?: number
           } = {};
 
           if (credMatch.cred_info.rev_reg_id !== null) {
             if (credMatch.cred_info.rev_reg_id !== revRegIdMatcher) {
-              const revocStateObject = await ArnimaSdk.createRevocationStateObject(
-                poolName,
-                poolConfig,
-                publicDid,
-                credMatch.cred_info.rev_reg_id,
-                credMatch.cred_info.cred_rev_id,
-              )
-              const timestamp = Object.keys(JSON.parse(revocStateObject));
-              timestampObj.timestamp = parseInt(timestamp[0])
-              revocStates[credMatch.cred_info.rev_reg_id] = JSON.parse(revocStateObject)
-              // This is done to reduce the time for proof creation
-              revRegIdMatcher = credMatch.cred_info.rev_reg_id
-              revRegIdJsonMatcher = JSON.parse(revocStateObject)
+              if (isNeedToCreateMasterRevocObj) {
+                const revocStateObject = await ArnimaSdk.createRevocationStateObject(
+                  poolName,
+                  poolConfig,
+                  publicDid,
+                  credMatch.cred_info.rev_reg_id,
+                  credMatch.cred_info.cred_rev_id,
+                  fromTime.toString(),
+                  toTime.toString()
+                )
+                const timestamp = Object.keys(JSON.parse(revocStateObject));
+                timestampObj.timestamp = parseInt(timestamp[0])
+                revocStates[credMatch.cred_info.rev_reg_id] = JSON.parse(revocStateObject)
+                // This is done to reduce the time for proof creation
+                revRegIdMatcher = credMatch.cred_info.rev_reg_id
+                revRegIdJsonMatcher = JSON.parse(revocStateObject)
+              }
             } else {
               const timestamp = Object.keys(revRegIdJsonMatcher);
               timestampObj.timestamp = parseInt(timestamp[0])
               revocStates[credMatch.cred_info.rev_reg_id] = revRegIdJsonMatcher
             }
           }
-          requestedCredentials.requested_predicates[referent] = {
+          requestedCredentials.requested_predicates[key] = {
             cred_id: credMatch.cred_info.referent,
             ...timestampObj
           }
         } else {
-          const value = credMatch.cred_info.attrs[requestedPredicate.name]
+          const nameValue = credMatch.cred_info.attrs[value.name]
 
-          requestedCredentials.self_attested_attributes[referent] = value
+          requestedCredentials.self_attested_attributes[key] = nameValue
         }
       }
       return [requestedCredentials, revocStates]

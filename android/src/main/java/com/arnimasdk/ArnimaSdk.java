@@ -5,7 +5,6 @@
 package com.arnimasdk;
 
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
 
@@ -80,7 +79,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             Pool.setProtocolVersion(PROTOCOL_VERSION).get();
 
-            File file = new File(Environment.getExternalStorageDirectory() + "/" + File.separator + "tempPool.txn");
+            File file = new File(reactContext.getExternalFilesDir(null) + "/" + File.separator + "tempPool.txn");
 
             file.createNewFile();
 
@@ -671,7 +670,9 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId, String credRevId,Promise promise)
+    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId,
+                                            String credRevId,
+            String fromTime,String toTime,Promise promise)
             throws Exception {
         Pool pool = null;
         JSONObject revocState = new JSONObject();
@@ -679,8 +680,14 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             pool = openPoolLedger(poolName, poolConfig, promise);
             if (pool != null) {
+                long from = Long.parseLong(fromTime);
+                long to=Long.parseLong(toTime);
+                if (from == to) {
+                  from = 0;
+                }
+
                 String revocRegDeltaRequest = Ledger
-                        .buildGetRevocRegDeltaRequest(submitterDid, revRegId, 0, System.currentTimeMillis() / 1000).get();
+                    .buildGetRevocRegDeltaRequest(submitterDid, revRegId, from, to).get();
                 String revocRegDeltaResponse = Ledger.submitRequest(pool, revocRegDeltaRequest).get();
                 LedgerResults.ParseRegistryResponseResult revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(revocRegDeltaResponse)
                         .get();

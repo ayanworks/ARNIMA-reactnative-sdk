@@ -31,7 +31,7 @@
     "react-native": "*",
     "realm": "*",
     "socket.io-client": "*",
-    "uuidv4": "*",
+    "uuid": "*",
     "base64url": "*",
     "@types/node": "*",
     "react-native-event-listeners": "*",

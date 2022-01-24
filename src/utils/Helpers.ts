@@ -3,21 +3,21 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-import { Connection } from '../protocols/connection/ConnectionInterface';
-import { createForwardMessage } from '../protocols/connection/ConnectionMessages';
-import { InboundMessage, OutboundMessage } from './Types';
-import { InvitationDetails } from '../protocols/connection/InvitationInterface';
-import { Message } from './Types';
-import { NativeModules, Platform } from "react-native";
-import { OutboundAgentMessage } from '../network';
-import { WalletConfig, WalletCredentials } from '../wallet/WalletInterface';
+import {Connection} from '../protocols/connection/ConnectionInterface';
+import {createForwardMessage} from '../protocols/connection/ConnectionMessages';
+import {InboundMessage, OutboundMessage} from './Types';
+import {InvitationDetails} from '../protocols/connection/InvitationInterface';
+import {Message} from './Types';
+import {NativeModules, Platform} from 'react-native';
+import {OutboundAgentMessage} from '../network';
+import {WalletConfig, WalletCredentials} from '../wallet/WalletInterface';
 import base64url from 'base64url';
 import DatabaseServices from '../storage';
 
 const Buffer = require('buffer').Buffer;
-global.Buffer = global.Buffer || require('buffer').Buffer
+global.Buffer = global.Buffer || require('buffer').Buffer;
 
-const { ArnimaSdk } = NativeModules;
+const {ArnimaSdk} = NativeModules;
 
 export enum RecordType {
   Connection = 'Connection',
@@ -27,7 +27,7 @@ export enum RecordType {
   Presentation = 'Presentation',
   MediatorAgent = 'MediatorAgent',
   SSIMessage = 'SSIMessage',
-  Pool = 'Pool'
+  Pool = 'Pool',
 }
 
 function timestamp(): Uint8Array {
@@ -41,10 +41,15 @@ function timestamp(): Uint8Array {
   return Uint8Array.from(bytes).reverse();
 }
 
-export async function verify(configJson: WalletConfig, credentialsJson: WalletCredentials, message: Message, field: string) {
+export async function verify(
+  configJson: WalletConfig,
+  credentialsJson: WalletCredentials,
+  message: Message,
+  field: string,
+) {
   try {
-    const fieldKey = `${field}~sig`
-    const { [fieldKey]: data, ...signedMessage } = message;
+    const fieldKey = `${field}~sig`;
+    const {[fieldKey]: data, ...signedMessage} = message;
 
     const signerVerkey = data.signer;
     const signedData = base64url.toBuffer(data.sig_data);
@@ -52,18 +57,21 @@ export async function verify(configJson: WalletConfig, credentialsJson: WalletCr
 
     let valid;
     if (Platform.OS == 'android') {
-      valid = await ArnimaSdk.cryptoVerify(JSON.stringify(configJson),
+      valid = await ArnimaSdk.cryptoVerify(
+        JSON.stringify(configJson),
         JSON.stringify(credentialsJson),
         signerVerkey,
         Array.from(signedData),
-        Array.from(signature));
-    }
-    else {
-      valid = await ArnimaSdk.cryptoVerify(JSON.stringify(configJson),
+        Array.from(signature),
+      );
+    } else {
+      valid = await ArnimaSdk.cryptoVerify(
+        JSON.stringify(configJson),
         JSON.stringify(credentialsJson),
         signerVerkey,
         data.sig_data,
-        JSON.stringify(Array.from(signature)));
+        JSON.stringify(Array.from(signature)),
+      );
     }
 
     // if (!valid) {
@@ -78,29 +86,41 @@ export async function verify(configJson: WalletConfig, credentialsJson: WalletCr
 
     return originalMessage;
   } catch (error) {
-    console.log("verify = ", error);
+    console.log('verify = ', error);
     throw error;
   }
 }
 
-export async function sign(configJson: WalletConfig, credentialsJson: WalletCredentials, signerVerkey: string, message: Message, field: string) {
+export async function sign(
+  configJson: WalletConfig,
+  credentialsJson: WalletCredentials,
+  signerVerkey: string,
+  message: Message,
+  field: string,
+) {
   try {
+    const {[field]: data, ...originalMessage} = message;
 
-    const { [field]: data, ...originalMessage } = message;
-
-    const dataBuffer = Buffer.concat([timestamp(), Buffer.from(JSON.stringify(data), 'utf8')]);
+    const dataBuffer = Buffer.concat([
+      timestamp(),
+      Buffer.from(JSON.stringify(data), 'utf8'),
+    ]);
     let signatureBuffer;
 
     if (Platform.OS === 'ios') {
-      signatureBuffer = await ArnimaSdk.cryptoSign(JSON.stringify(configJson),
+      signatureBuffer = await ArnimaSdk.cryptoSign(
+        JSON.stringify(configJson),
         JSON.stringify(credentialsJson),
         signerVerkey,
-        JSON.stringify(data));
+        JSON.stringify(data),
+      );
     } else {
-      signatureBuffer = await ArnimaSdk.cryptoSign(JSON.stringify(configJson),
+      signatureBuffer = await ArnimaSdk.cryptoSign(
+        JSON.stringify(configJson),
         JSON.stringify(credentialsJson),
         signerVerkey,
-        Array.from(dataBuffer));
+        Array.from(dataBuffer),
+      );
     }
 
     const signedMessage = {
@@ -108,7 +128,8 @@ export async function sign(configJson: WalletConfig, credentialsJson: WalletCred
       '@id': message['@id'],
       ...originalMessage,
       [`${field}~sig`]: {
-        '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/signature/1.0/ed25519Sha512_single',
+        '@type':
+          'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/signature/1.0/ed25519Sha512_single',
         signature: base64url.encode(signatureBuffer),
         sig_data: base64url.encode(dataBuffer),
         signer: signerVerkey,
@@ -117,42 +138,68 @@ export async function sign(configJson: WalletConfig, credentialsJson: WalletCred
 
     return signedMessage;
   } catch (error) {
-    console.log("sign message = ", error);
+    console.log('sign message = ', error);
     throw error;
   }
 }
 
-export async function unpackMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage) {
+export async function unpackMessage(
+  configJson: WalletConfig,
+  credentialsJson: WalletCredentials,
+  inboundMessage: InboundMessage,
+) {
   try {
-    console.log('inboundMessage', inboundMessage)
+    console.log('inboundMessage', inboundMessage);
     const buf = Buffer.from(JSON.stringify(inboundMessage));
     let unpackedBufferMessage;
     if (Platform.OS === 'ios') {
-      unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(inboundMessage))
-    }
-    else {
-      unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(buf))
+      unpackedBufferMessage = await ArnimaSdk.unpackMessage(
+        JSON.stringify(configJson),
+        JSON.stringify(credentialsJson),
+        JSON.stringify(inboundMessage),
+      );
+    } else {
+      unpackedBufferMessage = await ArnimaSdk.unpackMessage(
+        JSON.stringify(configJson),
+        JSON.stringify(credentialsJson),
+        Array.from(buf),
+      );
     }
     const unpackedMessage = Buffer.from(unpackedBufferMessage);
-    console.log('unpackedMessage', unpackedMessage.toString('utf-8'))
+    console.log('unpackedMessage', unpackedMessage.toString('utf-8'));
     return JSON.parse(unpackedMessage.toString('utf-8'));
   } catch (error) {
-    console.log("unpackMessage = ", error);
+    console.log('unpackMessage = ', error);
     throw error;
   }
 }
 
-export async function packMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, outboundMessage: OutboundMessage) {
+export async function packMessage(
+  configJson: WalletConfig,
+  credentialsJson: WalletCredentials,
+  outboundMessage: OutboundMessage,
+) {
   try {
-    const { routingKeys, recipientKeys, senderVk, payload } = outboundMessage;
-    console.log("outboundMessage", JSON.stringify(outboundMessage, null, 2))
+    const {routingKeys, recipientKeys, senderVk, payload} = outboundMessage;
+    console.log('outboundMessage', JSON.stringify(outboundMessage, null, 2));
     const buf = Buffer.from(JSON.stringify(payload));
     let packedBufferMessage;
     if (Platform.OS === 'ios') {
-      packedBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(payload), recipientKeys, senderVk)
-    }
-    else {
-      packedBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(buf), recipientKeys, senderVk)
+      packedBufferMessage = await ArnimaSdk.packMessage(
+        JSON.stringify(configJson),
+        JSON.stringify(credentialsJson),
+        JSON.stringify(payload),
+        recipientKeys,
+        senderVk,
+      );
+    } else {
+      packedBufferMessage = await ArnimaSdk.packMessage(
+        JSON.stringify(configJson),
+        JSON.stringify(credentialsJson),
+        Array.from(buf),
+        recipientKeys,
+        senderVk,
+      );
     }
     const packedMessage = Buffer.from(packedBufferMessage);
     const outboundPackedMessage = JSON.parse(packedMessage.toString('utf-8'));
@@ -162,22 +209,34 @@ export async function packMessage(configJson: WalletConfig, credentialsJson: Wal
       for (const routingKey of routingKeys) {
         const [recipientKey] = recipientKeys;
         const forwardMessage = createForwardMessage(recipientKey, message);
-        const forwardMessageBuffer = Buffer.from(JSON.stringify(forwardMessage));
+        const forwardMessageBuffer = Buffer.from(
+          JSON.stringify(forwardMessage),
+        );
         let forwardBufferMessage;
         if (Platform.OS === 'ios') {
-          forwardBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(forwardMessage), [routingKey], senderVk)
-        }
-        else {
-          forwardBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(configJson), JSON.stringify(credentialsJson), Array.from(forwardMessageBuffer), [routingKey], senderVk)
+          forwardBufferMessage = await ArnimaSdk.packMessage(
+            JSON.stringify(configJson),
+            JSON.stringify(credentialsJson),
+            JSON.stringify(forwardMessage),
+            [routingKey],
+            senderVk,
+          );
+        } else {
+          forwardBufferMessage = await ArnimaSdk.packMessage(
+            JSON.stringify(configJson),
+            JSON.stringify(credentialsJson),
+            Array.from(forwardMessageBuffer),
+            [routingKey],
+            senderVk,
+          );
         }
         const forwardPackedMessage = Buffer.from(forwardBufferMessage);
         message = JSON.parse(forwardPackedMessage.toString('utf-8'));
       }
     }
     return message;
-  }
-  catch (error) {
-    console.log("packMessage = ", error);
+  } catch (error) {
+    console.log('packMessage = ', error);
     throw error;
   }
 }
@@ -185,24 +244,38 @@ export async function packMessage(configJson: WalletConfig, credentialsJson: Wal
 export function getServiceEndpoint() {
   // TODO : Need to find a way for realm db typing
   const sdkDB: any = DatabaseServices.getWallet();
-  return `${sdkDB.serviceEndpoint.split("/")[0] + "/" + sdkDB.serviceEndpoint.split("/")[1] + "/" + sdkDB.serviceEndpoint.split("/")[2]}/`;
+  return `${
+    sdkDB.serviceEndpoint.split('/')[0] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[1] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[2]
+  }/`;
 }
 
 export function decodeInvitationFromUrl(invitationUrl: string) {
-  if (invitationUrl.includes("?c_i=")) {
+  if (invitationUrl.includes('?c_i=')) {
     const [, encodedInvitation] = invitationUrl.split('c_i=');
     return JSON.parse(Buffer.from(encodedInvitation, 'base64').toString());
-  } else if (invitationUrl.includes("?d_m=")) {
+  } else if (invitationUrl.includes('?d_m=')) {
     const [encodedInvitation] = invitationUrl.split('=')[1].split('%');
     return JSON.parse(Buffer.from(encodedInvitation, 'base64').toString());
   }
 }
 
 export function encodeInvitationToUrl(invitation: InvitationDetails): string {
-  const encodedInvitation = Buffer.from(JSON.stringify(invitation)).toString('base64');
+  const encodedInvitation = Buffer.from(JSON.stringify(invitation)).toString(
+    'base64',
+  );
   // TODO : Need to find a way for realm db typing
   const sdkDB: any = DatabaseServices.getWallet();
-  return `${sdkDB.serviceEndpoint.split("/")[0] + "/" + sdkDB.serviceEndpoint.split("/")[1] + "/" + sdkDB.serviceEndpoint.split("/")[2]}/ssi?c_i=${encodedInvitation}`;
+  return `${
+    sdkDB.serviceEndpoint.split('/')[0] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[1] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[2]
+  }/ssi?c_i=${encodedInvitation}`;
 }
 
 export function decodeBase64(base64Data: string) {
@@ -217,17 +290,19 @@ export async function createOutboundMessage(
   connection: Connection,
   payload: Object,
   invitation?: Message,
-  oobService?: object
+  oobService?: object,
 ) {
   if (connection) {
-    const shouldUseReturnRoute = Boolean(connection.didDoc.service.find((s) => s.serviceEndpoint === ''))
+    const shouldUseReturnRoute = Boolean(
+      connection.didDoc.service.find((s) => s.serviceEndpoint === ''),
+    );
     if (shouldUseReturnRoute) {
       payload['~transport'] = {
-        return_route: 'all'
-      }
+        return_route: 'all',
+      };
     }
     if (invitation) {
-      const { recipientKeys, routingKeys, serviceEndpoint } = invitation
+      const {recipientKeys, routingKeys, serviceEndpoint} = invitation;
       return {
         connection,
         endpoint: serviceEndpoint,
@@ -238,12 +313,14 @@ export async function createOutboundMessage(
       };
     }
 
-    const { theirDidDoc } = connection;
+    const {theirDidDoc} = connection;
 
     if (!theirDidDoc) {
-      throw new Error(`DidDoc for connection with verkey ${connection.verkey} not found!`);
+      throw new Error(
+        `DidDoc for connection with verkey ${connection.verkey} not found!`,
+      );
     }
-    const { service } = theirDidDoc
+    const {service} = theirDidDoc;
     return {
       connection,
       endpoint: service[0].serviceEndpoint,
@@ -255,35 +332,59 @@ export async function createOutboundMessage(
   } else {
     const wallet = await DatabaseServices.getWallet();
     const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
-      wallet.walletConfig, wallet.walletCredentials, JSON.stringify({}), false);
-    const { recipientKeys, routingKeys, serviceEndpoint } = oobService;
+      wallet.walletConfig,
+      wallet.walletCredentials,
+      JSON.stringify({}),
+      false,
+    );
+    const {recipientKeys, routingKeys, serviceEndpoint} = oobService;
     return {
       payload,
       recipientKeys,
       routingKeys,
       endpoint: serviceEndpoint,
       senderVk: verkey,
-    }
+    };
   }
 }
 
-export async function sendOutboundMessage(configJson: WalletConfig, credentialsJson: WalletCredentials, connection: Connection, message: Object, invitation?: Message, oobService?: object) {
-  const outboundMessage = await createOutboundMessage(connection, message, invitation, oobService);
-  const outboundPackMessage = await packMessage(configJson, credentialsJson, outboundMessage);
-  await OutboundAgentMessage(outboundMessage.endpoint, 'POST', JSON.stringify(outboundPackMessage));
+export async function sendOutboundMessage(
+  configJson: WalletConfig,
+  credentialsJson: WalletCredentials,
+  connection: Connection,
+  message: Object,
+  invitation?: Message,
+  oobService?: object,
+) {
+  const outboundMessage = await createOutboundMessage(
+    connection,
+    message,
+    invitation,
+    oobService,
+  );
+  const outboundPackMessage = await packMessage(
+    configJson,
+    credentialsJson,
+    outboundMessage,
+  );
+  await OutboundAgentMessage(
+    outboundMessage.endpoint,
+    'POST',
+    JSON.stringify(outboundPackMessage),
+  );
 }
 
 export function replaceDidSovPrefixOnMessage(message) {
-  message['@type'] = replaceDidSovPrefix(message['@type'])
+  message['@type'] = replaceDidSovPrefix(message['@type']);
 }
 
 export function replaceDidSovPrefix(messageType: string) {
-  const didSovPrefix = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec'
-  const didCommPrefix = 'https://didcomm.org'
+  const didSovPrefix = 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec';
+  const didCommPrefix = 'https://didcomm.org';
 
   if (messageType.startsWith(didCommPrefix)) {
-    return messageType.replace(didCommPrefix, didSovPrefix)
+    return messageType.replace(didCommPrefix, didSovPrefix);
   }
 
-  return messageType
+  return messageType;
 }

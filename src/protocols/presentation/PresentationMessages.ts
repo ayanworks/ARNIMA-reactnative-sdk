@@ -5,13 +5,13 @@
 
 import { encodeBase64 } from '../../utils/Helpers';
 import { MessageType } from '../../utils/MessageType';
-import uuid from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function presentationProposalMessage(presentationProposal: object, comment: string,) {
 
   return {
     '@type': MessageType.ProposePresentation,
-    '@id': uuid(),
+    '@id': uuidv4(),
     comment: comment,
     'presentation_proposal': presentationProposal,
   };
@@ -20,7 +20,7 @@ export async function presentationProposalMessage(presentationProposal: object, 
 export async function creatPresentationMessage(data: string, comment: string, threadId: string) {
   return {
     '@type': MessageType.Presentation,
-    '@id': uuid(),
+    '@id': uuidv4(),
     '~thread': {
       thid: threadId,
     },
@@ -38,7 +38,7 @@ export async function creatPresentationMessage(data: string, comment: string, th
 export async function requestPresentationMessage(data: string, comment: string) {
   return {
     '@type': MessageType.RequestPresentation,
-    '@id': uuid(),
+    '@id': uuidv4(),
     comment: comment,
     'request_presentations~attach': [
       {
@@ -55,7 +55,7 @@ export async function requestPresentationMessage(data: string, comment: string) 
 export async function presentationAckMessage(threadId: string) {
   return {
     "@type": MessageType.PresentationAck,
-    "@id": uuid(),
+    "@id": uuidv4(),
     "status": "OK",
     "~thread": {
       thid: threadId,
