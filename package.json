@@ -9,7 +9,6 @@
   "devDependencies": {
     "@babel/core": "^7.7.7",
     "@babel/runtime": "^7.7.7",
-    "@types/node": "^12.12.21",
     "@react-native-community/eslint-config": "^0.0.6",
     "babel-jest": "^24.9.0",
     "eslint": "^6.8.0",
@@ -26,16 +25,18 @@
     "Mobile Agent"
   ],
   "license": "",
-  "peerDependencies": {},
-  "bundleDependencies": false,
-  "dependencies": {
-    "react": "17.0.2",
-    "react-native": "0.65.0",
-    "realm": "^10.12.0",
-    "socket.io-client": "^2.3.0",
-    "uuid": "^8.3.2",
-    "base64url": "^3.0.1",
-    "react-native-event-listeners": "^1.0.7"
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "realm": "*",
+    "socket.io-client": "*",
+    "uuid": "*",
+    "base64url": "*",
+    "@types/node": "*",
+    "react-native-event-listeners": "*",
+    "events": "*"
   },
+  "bundleDependencies": false,
+  "dependencies": {},
   "deprecated": false
 }
