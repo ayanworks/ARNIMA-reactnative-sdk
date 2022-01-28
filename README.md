@@ -6,6 +6,12 @@ This React-Native SDK is compatible to be used with both Android and iOS platfor
 # What's in the name
 Arnima (Hindi: अर्निमा, meaning "First ray of Sun") is a girl name in India whose zodiac sign is Aries 😉
 
+## Apps built using this SDK
+| App Name | Android | Ios |
+| ------ | ------ | ----- |
+| ADEYA | [Link](https://play.google.com/store/apps/details?id=com.credebl&hl=en_IN&gl=US) | [Link](https://apps.apple.com/us/app/adeya-ssi-wallet/id1561779080) |
+| DIT Wallet<br />(The Digital Identity Trust Foundation) | [Link](https://play.google.com/store/apps/details?id=com.dit&hl=en_IN&gl=US) | [Link](https://apps.apple.com/in/app/dit-wallet/id1593180308) |
+
 ## Features
 
 ### Finished
