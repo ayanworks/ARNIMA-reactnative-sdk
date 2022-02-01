@@ -3,8 +3,8 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-import { MessageType } from '../../utils/MessageType';
-import { v4 as uuidv4 } from 'uuid';
+import { MessageType } from '../../utils/MessageType'
+import { v4 as uuidv4 } from 'uuid'
 
 export function createBasicMessage(content: string) {
   return {
@@ -13,5 +13,5 @@ export function createBasicMessage(content: string) {
     '~l10n': { locale: 'en' },
     sent_time: new Date().toISOString(),
     content,
-  };
+  }
 }
