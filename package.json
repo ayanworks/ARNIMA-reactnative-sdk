@@ -1,9 +1,13 @@
-
 {
   "name": "react-native-arnima-sdk",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.3",
+  "description": "ARNIMA is an open-source React Native SDK for building Aries Mobile Agents.",
   "main": "./src/core",
+  "homepage": "https://github.com/ayanworks/ARNIMA-reactnative-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ayanworks/ARNIMA-reactnative-sdk"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,17 +25,18 @@
   "keywords": [
     "React Native",
     "Hyperledger Indy",
+    "Hyperledger Aries",
     "Indy",
     "Agent",
     "Mobile Agent"
   ],
-  "license": "",
+  "license": "Apache-2.0",
   "peerDependencies": {
     "react": "*",
     "react-native": "*",
     "realm": "*",
     "socket.io-client": "*",
-    "uuidv4": "*",
+    "uuid": "*",
     "base64url": "*",
     "@types/node": "*",
     "react-native-event-listeners": "*",
@@ -39,5 +44,8 @@
   },
   "bundleDependencies": false,
   "dependencies": {},
-  "deprecated": false
+  "deprecated": false,
+  "bugs": {
+    "url": "https://github.com/ayanworks/ARNIMA-reactnative-sdk/issues"
+  }
 }

@@ -8,7 +8,7 @@ import { createForwardMessage } from '../protocols/connection/ConnectionMessages
 import { InboundMessage, OutboundMessage } from './Types';
 import { InvitationDetails } from '../protocols/connection/InvitationInterface';
 import { Message } from './Types';
-import { NativeModules, Platform } from "react-native";
+import { NativeModules, Platform } from 'react-native';
 import { OutboundAgentMessage } from '../network';
 import { WalletConfig, WalletCredentials } from '../wallet/WalletInterface';
 import base64url from 'base64url';
@@ -26,7 +26,7 @@ export enum RecordType {
   Presentation = 'Presentation',
   MediatorAgent = 'MediatorAgent',
   SSIMessage = 'SSIMessage',
-  Pool = 'Pool'
+  Pool = 'Pool',
 }
 
 function timestamp(): Uint8Array {
@@ -42,7 +42,7 @@ function timestamp(): Uint8Array {
 
 export async function verify(message: Message, field: string) {
   try {
-    const fieldKey = `${field}~sig`
+    const fieldKey = `${field}~sig`;
     const { [fieldKey]: data, ...signedMessage } = message;
 
     const signerVerkey = data.signer;
@@ -56,12 +56,11 @@ export async function verify(message: Message, field: string) {
         Array.from(signedData),
         Array.from(signature),
       );
-    }
-    else {
+    } else {
       valid = await ArnimaSdk.cryptoVerify(
         signerVerkey,
         data.sig_data,
-        JSON.stringify(Array.from(signature))
+        JSON.stringify(Array.from(signature)),
       );
     }
 
@@ -77,28 +76,34 @@ export async function verify(message: Message, field: string) {
 
     return originalMessage;
   } catch (error) {
-    console.log("verify = ", error);
+    console.log('verify = ', error);
     throw error;
   }
 }
 
-export async function sign(signerVerkey: string, message: Message, field: string) {
+export async function sign(
+  signerVerkey: string,
+  message: Message,
+  field: string,
+) {
   try {
-
     const { [field]: data, ...originalMessage } = message;
 
-    const dataBuffer = Buffer.concat([timestamp(), Buffer.from(JSON.stringify(data), 'utf8')]);
+    const dataBuffer = Buffer.concat([
+      timestamp(),
+      Buffer.from(JSON.stringify(data), 'utf8'),
+    ]);
     let signatureBuffer;
 
     if (Platform.OS === 'ios') {
       signatureBuffer = await ArnimaSdk.cryptoSign(
         signerVerkey,
-        JSON.stringify(data)
+        JSON.stringify(data),
       );
     } else {
       signatureBuffer = await ArnimaSdk.cryptoSign(
         signerVerkey,
-        Array.from(dataBuffer)
+        Array.from(dataBuffer),
       );
     }
 
@@ -107,7 +112,8 @@ export async function sign(signerVerkey: string, message: Message, field: string
       '@id': message['@id'],
       ...originalMessage,
       [`${field}~sig`]: {
-        '@type': 'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/signature/1.0/ed25519Sha512_single',
+        '@type':
+          'did:sov:BzCbsNYhMrjHiqZDTUASHg;spec/signature/1.0/ed25519Sha512_single',
         signature: base64url.encode(signatureBuffer),
         sig_data: base64url.encode(dataBuffer),
         signer: signerVerkey,
@@ -116,7 +122,7 @@ export async function sign(signerVerkey: string, message: Message, field: string
 
     return signedMessage;
   } catch (error) {
-    console.log("sign message = ", error);
+    console.log('sign message = ', error);
     throw error;
   }
 }
@@ -126,15 +132,16 @@ export async function unpackMessage(inboundMessage: InboundMessage) {
     const buf = Buffer.from(JSON.stringify(inboundMessage));
     let unpackedBufferMessage;
     if (Platform.OS === 'ios') {
-      unpackedBufferMessage = await ArnimaSdk.unpackMessage(JSON.stringify(inboundMessage))
-    }
-    else {
-      unpackedBufferMessage = await ArnimaSdk.unpackMessage(Array.from(buf))
+      unpackedBufferMessage = await ArnimaSdk.unpackMessage(
+        JSON.stringify(inboundMessage),
+      );
+    } else {
+      unpackedBufferMessage = await ArnimaSdk.unpackMessage(Array.from(buf));
     }
     const unpackedMessage = Buffer.from(unpackedBufferMessage);
     return JSON.parse(unpackedMessage.toString('utf-8'));
   } catch (error) {
-    console.log("unpackMessage = ", error);
+    console.log('unpackMessage = ', error);
     throw error;
   }
 }
@@ -145,10 +152,17 @@ export async function packMessage(outboundMessage: OutboundMessage) {
     const buf = Buffer.from(JSON.stringify(payload));
     let packedBufferMessage;
     if (Platform.OS === 'ios') {
-      packedBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(payload), recipientKeys, senderVk)
-    }
-    else {
-      packedBufferMessage = await ArnimaSdk.packMessage(Array.from(buf), recipientKeys, senderVk)
+      packedBufferMessage = await ArnimaSdk.packMessage(
+        JSON.stringify(payload),
+        recipientKeys,
+        senderVk,
+      );
+    } else {
+      packedBufferMessage = await ArnimaSdk.packMessage(
+        Array.from(buf),
+        recipientKeys,
+        senderVk,
+      );
     }
     const packedMessage = Buffer.from(packedBufferMessage);
     const outboundPackedMessage = JSON.parse(packedMessage.toString('utf-8'));
@@ -158,22 +172,30 @@ export async function packMessage(outboundMessage: OutboundMessage) {
       for (const routingKey of routingKeys) {
         const [recipientKey] = recipientKeys;
         const forwardMessage = createForwardMessage(recipientKey, message);
-        const forwardMessageBuffer = Buffer.from(JSON.stringify(forwardMessage));
+        const forwardMessageBuffer = Buffer.from(
+          JSON.stringify(forwardMessage),
+        );
         let forwardBufferMessage;
         if (Platform.OS === 'ios') {
-          forwardBufferMessage = await ArnimaSdk.packMessage(JSON.stringify(forwardMessage), [routingKey], senderVk)
-        }
-        else {
-          forwardBufferMessage = await ArnimaSdk.packMessage(Array.from(forwardMessageBuffer), [routingKey], senderVk)
+          forwardBufferMessage = await ArnimaSdk.packMessage(
+            JSON.stringify(forwardMessage),
+            [routingKey],
+            senderVk,
+          );
+        } else {
+          forwardBufferMessage = await ArnimaSdk.packMessage(
+            Array.from(forwardMessageBuffer),
+            [routingKey],
+            senderVk,
+          );
         }
         const forwardPackedMessage = Buffer.from(forwardBufferMessage);
         message = JSON.parse(forwardPackedMessage.toString('utf-8'));
       }
     }
     return message;
-  }
-  catch (error) {
-    console.log("packMessage = ", error);
+  } catch (error) {
+    console.log('packMessage = ', error);
     throw error;
   }
 }
@@ -181,7 +203,11 @@ export async function packMessage(outboundMessage: OutboundMessage) {
 export function getServiceEndpoint() {
   // TODO : Need to find a way for realm db typing
   const sdkDB: any = DatabaseServices.getWallet();
-  return `${sdkDB.serviceEndpoint.split("/")[0] + "/" + sdkDB.serviceEndpoint.split("/")[1] + "/" + sdkDB.serviceEndpoint.split("/")[2]}/`;
+  return `${sdkDB.serviceEndpoint.split('/')[0] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[1] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[2]}/`;
 }
 
 export function decodeInvitationFromUrl(invitationUrl: string) {
@@ -190,10 +216,16 @@ export function decodeInvitationFromUrl(invitationUrl: string) {
 }
 
 export function encodeInvitationToUrl(invitation: InvitationDetails): string {
-  const encodedInvitation = Buffer.from(JSON.stringify(invitation)).toString('base64');
+  const encodedInvitation = Buffer.from(JSON.stringify(invitation)).toString(
+    'base64',
+  );
   // TODO : Need to find a way for realm db typing
   const sdkDB: any = DatabaseServices.getWallet();
-  return `${sdkDB.serviceEndpoint.split("/")[0] + "/" + sdkDB.serviceEndpoint.split("/")[1] + "/" + sdkDB.serviceEndpoint.split("/")[2]}/ssi?c_i=${encodedInvitation}`;
+  return `${sdkDB.serviceEndpoint.split('/')[0] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[1] +
+    '/' +
+    sdkDB.serviceEndpoint.split('/')[2]}/ssi?c_i=${encodedInvitation}`;
 }
 
 export function decodeBase64(base64Data: string) {
@@ -204,37 +236,76 @@ export function encodeBase64(data: string) {
   return Buffer.from(JSON.stringify(data)).toString('base64');
 }
 
-export function createOutboundMessage(connection: Connection, payload: Object, invitation?: Message) {
-  if (invitation) {
-    const { recipientKeys, routingKeys, serviceEndpoint } = invitation
+export async function createOutboundMessage(
+  connection: Connection,
+  payload: Object,
+  invitation?: Message,
+  oobService?: object,
+) {
+  if (connection) {
+    if (invitation) {
+      const { recipientKeys, routingKeys, serviceEndpoint } = invitation;
+      return {
+        connection,
+        endpoint: serviceEndpoint,
+        payload,
+        recipientKeys: recipientKeys,
+        routingKeys: routingKeys || [],
+        senderVk: connection.verkey,
+      };
+    }
+
+    const { theirDidDoc } = connection;
+
+    if (!theirDidDoc) {
+      throw new Error(
+        `DidDoc for connection with verkey ${connection.verkey} not found!`,
+      );
+    }
+    const { service } = theirDidDoc;
     return {
       connection,
-      endpoint: serviceEndpoint,
+      endpoint: service[0].serviceEndpoint,
       payload,
-      recipientKeys: recipientKeys,
-      routingKeys: routingKeys || [],
+      recipientKeys: service[0].recipientKeys,
+      routingKeys: service[0].routingKeys,
       senderVk: connection.verkey,
     };
+  } else {
+    const wallet = await DatabaseServices.getWallet();
+    const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
+      wallet.walletConfig,
+      wallet.walletCredentials,
+      JSON.stringify({}),
+      false,
+    );
+    const { recipientKeys, routingKeys, serviceEndpoint } = oobService;
+    return {
+      payload,
+      recipientKeys,
+      routingKeys,
+      endpoint: serviceEndpoint,
+      senderVk: verkey,
+    };
   }
-
-  const { theirDidDoc } = connection;
-
-  if (!theirDidDoc) {
-    throw new Error(`DidDoc for connection with verkey ${connection.verkey} not found!`);
-  }
-  const { service } = theirDidDoc
-  return {
-    connection,
-    endpoint: service[0].serviceEndpoint,
-    payload,
-    recipientKeys: service[0].recipientKeys,
-    routingKeys: service[0].routingKeys,
-    senderVk: connection.verkey,
-  };
 }
 
-export async function sendOutboundMessage(connection: Connection, message: Object, invitation?: Message) {
-  const outboundMessage = await createOutboundMessage(connection, message, invitation);
+export async function sendOutboundMessage(
+  connection: Connection,
+  message: Object,
+  invitation?: Message,
+  oobService?: object,
+) {
+  const outboundMessage = await createOutboundMessage(
+    connection,
+    message,
+    invitation,
+    oobService,
+  );
   const outboundPackMessage = await packMessage(outboundMessage);
-  await OutboundAgentMessage(outboundMessage.endpoint, 'POST', JSON.stringify(outboundPackMessage));
+  await OutboundAgentMessage(
+    outboundMessage.endpoint,
+    'POST',
+    JSON.stringify(outboundPackMessage),
+  );
 }

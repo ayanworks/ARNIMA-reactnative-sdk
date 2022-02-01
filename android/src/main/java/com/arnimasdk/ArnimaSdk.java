@@ -5,7 +5,6 @@
 package com.arnimasdk;
 
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.system.ErrnoException;
 import android.system.Os;
 
@@ -42,6 +41,7 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Map;
@@ -79,7 +79,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             Pool.setProtocolVersion(PROTOCOL_VERSION).get();
 
-            File file = new File(Environment.getExternalStorageDirectory() + "/" + File.separator + "tempPool.txn");
+            File file = new File(reactContext.getExternalFilesDir(null) + "/" + File.separator + "tempPool.txn");
 
             file.createNewFile();
 
@@ -683,7 +683,9 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId, String credRevId, Promise promise)
+    public void createRevocationStateObject(String poolName, String poolConfig, String submitterDid, String revRegId,
+                                            String credRevId,
+            String fromTime,String toTime,Promise promise)
             throws Exception {
         Pool pool = null;
         JSONObject revocState = new JSONObject();
@@ -691,8 +693,14 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         try {
             pool = openPoolLedger(poolName, poolConfig, promise);
             if (pool != null) {
+                long from = Long.parseLong(fromTime);
+                long to=Long.parseLong(toTime);
+                if (from == to) {
+                  from = 0;
+                }
+
                 String revocRegDeltaRequest = Ledger
-                        .buildGetRevocRegDeltaRequest(submitterDid, revRegId, 0, System.currentTimeMillis() / 1000).get();
+                    .buildGetRevocRegDeltaRequest(submitterDid, revRegId, from, to).get();
                 String revocRegDeltaResponse = Ledger.submitRequest(pool, revocRegDeltaRequest).get();
                 LedgerResults.ParseRegistryResponseResult revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(revocRegDeltaResponse)
                         .get();
@@ -810,6 +818,45 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
             buffer[i] = (byte) arr.getInt(i);
         }
         return buffer;
+    }
+
+
+    @ReactMethod
+    public void getRequestRedirectionUrl(String url, Promise promise) {
+        new GetRequestRedirectionUrl().execute(url, promise);
+    }
+
+    private class GetRequestRedirectionUrl extends AsyncTask {
+        Promise promise = null;
+
+        @Override
+        protected Object doInBackground(Object[] objects) {
+            try {
+                promise = (Promise) objects[1];
+                URL urlObj = new URL(objects[0].toString());
+
+                HttpURLConnection connection = (HttpURLConnection) urlObj.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setInstanceFollowRedirects(false);
+
+                int responseCode = connection.getResponseCode();
+
+                if (responseCode == 302) {
+                    String location = connection.getHeaderField("location");
+                    promise.resolve(location);
+                }
+                promise.reject("Unable to fetch URL", "Unable to fetch URL");
+            } catch (Exception e) {
+                IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+                promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+            }
+            return promise;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+        }
     }
 
     class IndySdkRejectResponse {
