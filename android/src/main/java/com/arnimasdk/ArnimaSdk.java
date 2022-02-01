@@ -50,10 +50,10 @@ import java.util.concurrent.ExecutionException;
 
 public class ArnimaSdk extends ReactContextBaseJavaModule {
 
-    private final ReactApplicationContext reactContext;
     public static final int PROTOCOL_VERSION = 2;
+    private final ReactApplicationContext reactContext;
     private final Map<Integer, Wallet> walletMap;
-    private Map<Integer, CredentialsSearchForProofReq> credentialSearchMap;
+    private final Map<Integer, CredentialsSearchForProofReq> credentialSearchMap;
     private int credentialSearchIterator = 0;
 
     public ArnimaSdk(ReactApplicationContext reactContext) {
@@ -126,7 +126,6 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         }
     }
 
-
     @ReactMethod
     public void openInitWallet(String walletConfig, String walletCredentials, Promise promise) {
         Wallet wallet = null;
@@ -162,6 +161,19 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public Wallet getWalletHandle(Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = walletMap.get(1);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        } finally {
+            return wallet;
+        }
+    }
+
     public Pool openPoolLedger(String poolName, String poolConfig, Promise promise) {
         Pool pool = null;
         try {
@@ -173,6 +185,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
             return null;
         }
     }
+
     public void closePoolLedger(Pool pool) {
         try {
             pool.closePoolLedger().get();
@@ -187,10 +200,10 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void createAndStoreMyDid(String walletConfig, String walletCredentials, String didJson,
-                                     Boolean createMasterSecret, Promise promise) {
+                                    Boolean createMasterSecret, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = openWallet(walletConfig, walletCredentials ,promise);
             if (wallet != null) {
                 DidResults.CreateAndStoreMyDidResult createMyDidResult = Did
                         .createAndStoreMyDid(wallet, didJson).get();
@@ -200,7 +213,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
                 JSONObject config = new JSONObject(walletConfig);
                 response.pushString(myDid);
                 response.pushString(myVerkey);
-                if ((Boolean) createMasterSecret) {
+                if (createMasterSecret) {
                     String outputMasterSecretId = Anoncreds
                             .proverCreateMasterSecret(wallet, config.get("id").toString()).get();
                     response.pushString(outputMasterSecretId);
@@ -214,11 +227,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void addWalletRecord(String walletConfig, String walletCredentials, String recordType, String id, String value, String tags,
+    public void addWalletRecord(String recordType, String id, String value, String tags,
                                 Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 WalletRecord.add(wallet, recordType, id, value, tags).get();
                 promise.resolve("true");
@@ -230,17 +243,17 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void updateWalletRecord(String walletConfig, String walletCredentials, String recordType, String id, String value, String tags,
+    public void updateWalletRecord(String recordType, String id, String value, String tags,
                                    Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 WalletRecord.updateValue(wallet, recordType, id, value)
                         .get();
 
                 if (!tags.equalsIgnoreCase("{}")) {
-                    WalletRecord.updateTags(wallet, recordType, id,tags);
+                    WalletRecord.updateTags(wallet, recordType, id, tags);
                 }
                 promise.resolve("true");
             }
@@ -251,11 +264,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void deleteWalletRecord(String walletConfig, String walletCredentials, String recordType, String id,
+    public void deleteWalletRecord(String recordType, String id,
                                    Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 WalletRecord.delete(wallet, recordType, id)
                         .get();
@@ -268,11 +281,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void getWalletRecordFromQuery(String walletConfig, String walletCredentials, String recordType, String query,
-                                         Promise promise) {
+    public void getWalletRecordFromQuery(String recordType, String query,
+                                               Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 WalletSearch search = WalletSearch.open(wallet, recordType, query, "{\"retrieveTags\":true,\"retrieveType \":true, \"retrieveType\": true }")
                         .get();
@@ -287,15 +300,15 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void packMessage(String walletConfig, String walletCredentials, ReadableArray message,
+    public void packMessage(ReadableArray message,
                             ReadableArray receiverKeyArray, String senderVk, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
-                byte[] buffer = readableArrayToBuffer((ReadableArray) message);
+                byte[] buffer = readableArrayToBuffer(message);
 
-                ReadableArray receiverKeys = (ReadableArray) receiverKeyArray;
+                ReadableArray receiverKeys = receiverKeyArray;
                 String[] keys = new String[receiverKeys.size()];
                 for (int i = 0; i < receiverKeys.size(); i++) {
                     keys[i] = receiverKeys.getString(i);
@@ -318,10 +331,10 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void unpackMessage(String walletConfig, String walletCredentials, ReadableArray jwe, Promise promise) {
+    public void unpackMessage(ReadableArray jwe, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 byte[] buffer = readableArrayToBuffer(jwe);
                 byte[] res = Crypto.unpackMessage(wallet, buffer).get();
@@ -339,11 +352,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void cryptoSign(String walletConfig, String walletCredentials, String signerVk, ReadableArray messageRaw,
+    public void cryptoSign(String signerVk, ReadableArray messageRaw,
                            Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 byte[] messageBuf = readableArrayToBuffer(messageRaw);
                 byte[] signature = Crypto.cryptoSign(wallet, signerVk, messageBuf).get();
@@ -360,11 +373,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void cryptoVerify(String walletConfig, String walletCredentials, String signerVk, ReadableArray messageRaw,
+    public void cryptoVerify(String signerVk, ReadableArray messageRaw,
                              ReadableArray signatureRaw, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 byte[] messageBuf = readableArrayToBuffer(messageRaw);
                 byte[] sigBuf = readableArrayToBuffer(signatureRaw);
@@ -378,11 +391,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void proverCreateCredentialReq(String walletConfig, String walletCredentials, String proverDid,
+    public void proverCreateCredentialReq(String proverDid,
                                           String credentialOfferJson, String credentialDefJson, String masterSecret, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 AnoncredsResults.ProverCreateCredentialRequestResult credentialRequestResult = Anoncreds
                         .proverCreateCredentialReq(wallet, proverDid, credentialOfferJson,
@@ -400,14 +413,14 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void proverStoreCredential(String walletConfig, String walletCredentials, String credId,
+    public void proverStoreCredential(String credId,
                                       String credReqMetadataJson, String credJson, String credDefJson, String revRegDefJson, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
-                String  newCredId = Anoncreds.proverStoreCredential(wallet, credId, credReqMetadataJson,
-                            credJson, credDefJson, revRegDefJson).get();
+                String newCredId = Anoncreds.proverStoreCredential(wallet, credId, credReqMetadataJson,
+                        credJson, credDefJson, revRegDefJson).get();
                 promise.resolve(newCredId);
             }
         } catch (Exception e) {
@@ -467,10 +480,10 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void proverGetCredentials(String walletConfig, String walletCredentials, String filter, Promise promise) {
+    public void proverGetCredentials(String filter, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 String credentials = Anoncreds.proverGetCredentials(wallet, filter).get();
                 promise.resolve(credentials);
@@ -482,10 +495,10 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void proverGetCredential(String walletConfig, String walletCredentials, String credId, Promise promise) {
+    public void proverGetCredential(String credId, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 String credential = Anoncreds.proverGetCredential(wallet, credId).get();
                 promise.resolve(credential);
@@ -503,7 +516,7 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
             String credDefRequest = Ledger.buildGetCredDefRequest(submitterDid, id).get();
             pool = openPoolLedger(poolName, poolConfig, promise);
             if (pool != null) {
-                String credDefResponse = Ledger.submitRequest(pool,  credDefRequest).get();
+                String credDefResponse = Ledger.submitRequest(pool, credDefRequest).get();
 
                 LedgerResults.ParseResponseResult responseResult = Ledger.parseGetCredDefResponse(credDefResponse).get();
                 promise.resolve(responseResult.getObjectJson());
@@ -577,11 +590,11 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void proverCreateProof(String walletConfig, String walletCredentials, String proofRequest,
+    public void proverCreateProof(String proofRequest,
                                   String requestedCredentials, String masterSecret, String schemas, String credentialDefs, String revocObject, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 String cred_proof = Anoncreds.proverCreateProof(wallet, proofRequest,
                         String.valueOf(requestedCredentials), masterSecret, String.valueOf(schemas),
@@ -753,10 +766,10 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void exportWallet(String walletConfig, String walletCredentials, String config, Promise promise) {
+    public void exportWallet(String config, Promise promise) {
         Wallet wallet = null;
         try {
-            wallet = openWallet(walletConfig, walletCredentials, promise);
+            wallet = getWalletHandle(promise);
             if (wallet != null) {
                 Wallet.exportWallet(wallet, config).get();
                 promise.resolve("true");

@@ -13,7 +13,6 @@ import { InboundMessage, Message } from '../../utils/Types';
 import { NativeModules } from 'react-native';
 import { Pool } from '../../pool/PoolInterface';
 import { RecordType, decodeBase64, sendOutboundMessage } from '../../utils/Helpers';
-import { WalletConfig, WalletCredentials } from '../../wallet/WalletInterface';
 import DatabaseServices from '../../storage';
 import WalletStorageService from '../../wallet/WalletStorageService';
 
@@ -23,21 +22,19 @@ class CredentialService {
   /**
    * @description Process a received offer message, This will only store credential record.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
    * @param {string} messageId
    * @return {*}  {Promise<Connection>}
    * @memberof CredentialService
    */
-  async requestReceived(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage, messageId: string): Promise<Connection> {
+  async requestReceived(inboundMessage: InboundMessage, messageId: string): Promise<Connection> {
     try {
       const { recipient_verkey } = inboundMessage;
       const query = {
         connectionId: recipient_verkey
       }
 
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const message: Message = (inboundMessage.message);
 
       const offersAttach = message['offers~attach'];
@@ -61,8 +58,6 @@ class CredentialService {
 
       if (message.hasOwnProperty('~thread') && Object.keys(message['~thread']).length > 0) {
         await WalletStorageService.updateWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Credential,
           message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
           JSON.stringify(issueCredential),
@@ -71,8 +66,6 @@ class CredentialService {
       } else {
         issueCredential.createdAt = new Date().toISOString()
         await WalletStorageService.addWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Credential,
           message['@id'],
           JSON.stringify(issueCredential),
@@ -90,8 +83,6 @@ class CredentialService {
   /**
    * @description Create a credential proposal and send to particular connection not bound to an existing credential exchange.  
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {object} connectionId
    * @param {string} proposeCredential
    * @param {string} schemaId
@@ -101,7 +92,7 @@ class CredentialService {
    * @return {*}  {Promise<Boolean>}
    * @memberof CredentialService
    */
-  async createProposal(configJson: WalletConfig, credentialsJson: WalletCredentials,
+  async createProposal(
     connectionId: object,
     proposeCredential: string,
     schemaId: string,
@@ -113,7 +104,7 @@ class CredentialService {
     try {
       const query = { connectionId: connectionId }
 
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const credentialPreview = await credentialPreviewMessage(proposeCredential);
 
       const credentialProposal = await credentialProposalMessage(credentialPreview,
@@ -130,7 +121,7 @@ class CredentialService {
       }
 
       if (proposeCredential !== '') {
-        await sendOutboundMessage(configJson, credentialsJson, connection, credentialProposal)
+        await sendOutboundMessage(connection, credentialProposal)
 
         const issueCredentialTags: Object = {
           connectionId: connection.verkey,
@@ -138,8 +129,6 @@ class CredentialService {
         }
 
         await WalletStorageService.addWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Credential,
           credentialProposal["@id"],
           JSON.stringify(issueCredential),
@@ -160,19 +149,17 @@ class CredentialService {
   /**
    * @description Create a request credential message as response to a received credential offer.   
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Boolean>}
    * @memberof CredentialService
    */
-  async createRequest(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage): Promise<Boolean> {
+  async createRequest(inboundMessage: InboundMessage): Promise<Boolean> {
 
     try {
       const { recipient_verkey } = inboundMessage;
       const query = { connectionId: recipient_verkey }
 
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
 
       const message: Message = JSON.parse(inboundMessage.message);
       const offersAttach = message['offers~attach'];
@@ -182,7 +169,7 @@ class CredentialService {
         isSelected: JSON.stringify(true)
       }
 
-      const poolRecord: Pool = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Pool, JSON.stringify(queryPool));
+      const poolRecord: Pool = await WalletStorageService.getWalletRecordFromQuery(RecordType.Pool, JSON.stringify(queryPool));
       const credDefJson: string = await ArnimaSdk.getCredDef(
         connection.did,
         credOfferJson.cred_def_id,
@@ -191,8 +178,6 @@ class CredentialService {
       );
 
       const credentialRequest = await ArnimaSdk.proverCreateCredentialReq(
-        JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
         connection.did,
         JSON.stringify(credOfferJson),
         credDefJson,
@@ -219,7 +204,7 @@ class CredentialService {
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
       );
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, credentialRequestMessage)
+      await sendOutboundMessage(connection, credentialRequestMessage)
 
       const issueCredentialTags: Object = {
         issueCredentialId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
@@ -228,8 +213,6 @@ class CredentialService {
 
       issueCredential.updatedAt = new Date().toISOString()
       await WalletStorageService.updateWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.Credential,
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
         JSON.stringify(issueCredential),
@@ -246,13 +229,11 @@ class CredentialService {
   /**
    * @description Process a received credential message. This will store the credential and send a credential acknowledgement. 
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Boolean>}
    * @memberof CredentialService
    */
-  async processCredential(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage): Promise<Boolean> {
+  async processCredential(inboundMessage: InboundMessage): Promise<Boolean> {
     try {
       const { recipient_verkey } = inboundMessage;
       const message: Message = JSON.parse(inboundMessage.message);
@@ -260,12 +241,12 @@ class CredentialService {
       const issueCredentialQuery = {
         issueCredentialId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id']
       }
-      const issueCredentialRecord: Credential = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Credential, JSON.stringify(issueCredentialQuery));
+      const issueCredentialRecord: Credential = await WalletStorageService.getWalletRecordFromQuery(RecordType.Credential, JSON.stringify(issueCredentialQuery));
       const query = {
         connectionId: recipient_verkey
       }
 
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
 
       const credentialsAttach = message['credentials~attach'];
       const credCertificate = await decodeBase64(credentialsAttach[0].data.base64);
@@ -275,7 +256,7 @@ class CredentialService {
         isSelected: JSON.stringify(true)
       }
 
-      const poolRecord: Pool = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Pool, JSON.stringify(queryPool));
+      const poolRecord: Pool = await WalletStorageService.getWalletRecordFromQuery(RecordType.Pool, JSON.stringify(queryPool));
       if (credCertificate.rev_reg_id !== null) {
         revocRegDefJson = await ArnimaSdk.getRevocRegDef(
           connection.did,
@@ -285,8 +266,6 @@ class CredentialService {
         );
       }
       const storedCredentialId = await ArnimaSdk.proverStoreCredential(
-        JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
         null,
         JSON.stringify(issueCredentialRecord.credentialRequestMetadata),
         JSON.stringify(credCertificate),
@@ -297,7 +276,7 @@ class CredentialService {
       if (storedCredentialId.length !== '') {
         issueCredentialRecord.state = CredentialState.STATE_ACKED;
         issueCredentialRecord.revocRegId = credCertificate.rev_reg_id;
-        issueCredentialRecord.revocRegDefJson = revocRegDefJson === null ? {} : JSON.parse(revocRegDefJson);
+        issueCredentialRecord.revocRegDefJson = revocRegDefJson === null ? { } : JSON.parse(revocRegDefJson);
         issueCredentialRecord.updatedAt = new Date().toISOString();
         issueCredentialRecord.credentialId = storedCredentialId;
       } else {
@@ -308,7 +287,7 @@ class CredentialService {
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id']
       );
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, credentialRequestMessage)
+      await sendOutboundMessage(connection, credentialRequestMessage)
 
       const issueCredentialTags: Object = {
         issueCredentialId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
@@ -316,8 +295,6 @@ class CredentialService {
         credentialsId: storedCredentialId,
       }
       await WalletStorageService.updateWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.Credential,
         message['~thread'].thid,
         JSON.stringify(issueCredentialRecord),

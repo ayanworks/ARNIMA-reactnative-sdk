@@ -3,10 +3,10 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-import AgentServices from '../agent';
+import AgentServices from '../agent'
 
 const ARNIMASDK = {
   ...AgentServices,
 }
 
-export default ARNIMASDK;
+export default ARNIMASDK

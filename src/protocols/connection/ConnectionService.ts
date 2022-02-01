@@ -3,42 +3,53 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-import { Authentication, DidDoc, PublicKey, PublicKeyType, Service } from '../../utils/DidDoc';
-import { InboundMessage, Message } from '../../utils/Types';
-import { RecordType, encodeInvitationToUrl, getServiceEndpoint, sendOutboundMessage, sign, verify } from '../../utils/Helpers';
-import { WalletConfig, WalletCredentials } from '../../wallet/WalletInterface';
+import {
+  Authentication,
+  DidDoc,
+  PublicKey,
+  PublicKeyType,
+  Service,
+} from '../../utils/DidDoc';
+import {InboundMessage, Message} from '../../utils/Types';
+import {
+  RecordType,
+  encodeInvitationToUrl,
+  getServiceEndpoint,
+  sendOutboundMessage,
+  sign,
+  verify,
+} from '../../utils/Helpers';
 import {
   createConnectionRequestMessage,
   createConnectionResponseMessage,
-  createInvitationMessage
+  createInvitationMessage,
 } from './ConnectionMessages';
 
-import { Connection } from './ConnectionInterface';
-import { ConnectionState } from './ConnectionState';
+import {Connection} from './ConnectionInterface';
+import {ConnectionState} from './ConnectionState';
 import DatabaseServices from '../../storage';
-import { NativeModules } from "react-native";
-import { NetworkServices } from "../../network";
-import { TrustPing } from "../trustPing/TrustPingInterface";
-import { TrustPingState } from '../trustPing/TrustPingState';
+import {NativeModules} from 'react-native';
+import {NetworkServices} from '../../network';
+import {TrustPing} from '../trustPing/TrustPingInterface';
+import {TrustPingState} from '../trustPing/TrustPingState';
 import WalletStorageService from '../../wallet/WalletStorageService';
-import { createTrustPingMessage } from '../trustPing/TrustPingMessages';
-import { EventInterface } from 'react-native-arnima-sdk/src/agent/EventInterface';
-import { EventRegister } from 'react-native-event-listeners';
+import {createTrustPingMessage} from '../trustPing/TrustPingMessages';
+import {EventInterface} from 'react-native-arnima-sdk/src/agent/EventInterface';
+import {EventRegister} from 'react-native-event-listeners';
 
-const { ArnimaSdk } = NativeModules;
+const {ArnimaSdk} = NativeModules;
 class ConnectionService {
-
   /**
    * @description Create invitation with details
    *
    * @private
    * @param {Connection} connection
    * @param {string} logo
-   * @return {*} 
+   * @return {*}
    * @memberof ConnectionService
    */
   private createInvitationDetails(connection: Connection, logo: string) {
-    const { didDoc } = connection;
+    const {didDoc} = connection;
     return {
       label: DatabaseServices.getLabel(),
       recipientKeys: didDoc.service[0].recipientKeys,
@@ -46,37 +57,30 @@ class ConnectionService {
       routingKeys: didDoc.service[0].routingKeys,
       alias: {
         logo,
-        organizationId: ''
-      }
+        organizationId: '',
+      },
     };
   }
 
   /**
    * @description Create a new connection record containing a connection invitation message
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {Object} didJson
    * @param {string} logo
    * @return {*}  {Promise<string>}
    * @memberof ConnectionService
    */
-  async createInvitation(configJson: WalletConfig,
-    credentialsJson: WalletCredentials,
-    didJson: Object,
-    logo: string): Promise<string> {
-    const connection: Connection = await this.createConnection(configJson, credentialsJson, didJson);
+  async createInvitation(didJson: Object, logo: string): Promise<string> {
+    const connection: Connection = await this.createConnection(didJson);
 
     const connectionTags: Object = {
       connectionId: connection.verkey,
-    }
+    };
     await WalletStorageService.addWalletRecord(
-      configJson,
-      credentialsJson,
       RecordType.Connection,
       connection.verkey,
       JSON.stringify(connection),
-      JSON.stringify(connectionTags)
+      JSON.stringify(connectionTags),
     );
 
     const invitationDetails = this.createInvitationDetails(connection, logo);
@@ -90,43 +94,51 @@ class ConnectionService {
   /**
    * @description Process a received invitation message.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {Object} didJson
    * @param {Message} invitation
    * @param {string} logo
    * @return {*}  {Promise<Connection>}
    * @memberof ConnectionService
    */
-  async acceptInvitation(configJson: WalletConfig,
-    credentialsJson: WalletCredentials,
+  async acceptInvitation(
     didJson: Object,
     invitation: Message,
-    logo: string): Promise<Connection> {
+    logo: string,
+  ): Promise<Connection> {
     try {
-      const connection: Connection = await this.createConnection(configJson, credentialsJson, didJson, invitation.label,
+      const connection: Connection = await this.createConnection(
+        didJson,
+        invitation.label,
         invitation.hasOwnProperty('alias') ? invitation.alias.logoUrl : '',
-        invitation.hasOwnProperty('alias') ? invitation.alias.organizationId : '');
-      const connectionRequest = createConnectionRequestMessage(connection, DatabaseServices.getLabel(), logo);
+        invitation.hasOwnProperty('alias')
+          ? invitation.alias.organizationId
+          : '',
+      );
+      const connectionRequest = createConnectionRequestMessage(
+        connection,
+        DatabaseServices.getLabel(),
+        logo,
+      );
       connection.state = ConnectionState.REQUESTED;
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, connectionRequest, invitation)
+      await sendOutboundMessage(connection, connectionRequest, invitation);
 
       const connectionTags: Object = {
         connectionId: connection.verkey,
-      }
+      };
 
       await WalletStorageService.addWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.Connection,
         connection.verkey,
         JSON.stringify(connection),
-        JSON.stringify(connectionTags)
+        JSON.stringify(connectionTags),
       );
       return connection;
     } catch (error) {
-      console.log('Connection - Create invitation error = ', JSON.stringify(error));
+      console.log(
+        'Connection - Create invitation error = ',
+        JSON.stringify(error),
+      );
       throw error;
     }
   }
@@ -134,19 +146,20 @@ class ConnectionService {
   /**
    * @description Process a received connection request message. This will not accept the connection request
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
-   * @return {*} 
+   * @return {*}
    * @memberof ConnectionService
    */
-  async processRequest(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage) {
-    const { message, recipient_verkey } = inboundMessage;
+  async processRequest(inboundMessage: InboundMessage) {
+    const {message, recipient_verkey} = inboundMessage;
     const query = {
-      connectionId: recipient_verkey
-    }
+      connectionId: recipient_verkey,
+    };
 
-    const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+    const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(
+      RecordType.Connection,
+      JSON.stringify(query),
+    );
 
     if (!connection) {
       throw new Error(`Connection for verkey ${recipient_verkey} not found!`);
@@ -156,11 +169,13 @@ class ConnectionService {
       throw new Error('Invalid message');
     }
     try {
-      const receivedMessage: Message = await verify(configJson, credentialsJson, typeMessage, 'connection');
+      const receivedMessage: Message = await verify(typeMessage, 'connection');
       connection.theirDid = receivedMessage.connection.DID;
       connection.theirDidDoc = receivedMessage.connection.DIDDoc;
       if (!connection.theirDidDoc.service[0].recipientKeys[0]) {
-        throw new Error(`Connection with verkey ${connection.verkey} has no recipient keys.`);
+        throw new Error(
+          `Connection with verkey ${connection.verkey} has no recipient keys.`,
+        );
       }
       const trustPingMessage = createTrustPingMessage();
       connection.state = ConnectionState.COMPLETE;
@@ -173,42 +188,41 @@ class ConnectionService {
         status: TrustPingState.SENT,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      }
+      };
 
       const trustPingTags = {
         connectionId: recipient_verkey,
         trustPingId: trustPingMessage['@id'],
         status: TrustPingState.SENT,
-      }
+      };
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, trustPingMessage)
+      await sendOutboundMessage(connection, trustPingMessage);
 
       await WalletStorageService.updateWalletRecord(
-        configJson, credentialsJson,
         RecordType.Connection,
         connection.verkey,
         JSON.stringify(connection),
-        '{}'
+        '{}',
       );
 
       await WalletStorageService.addWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.TrustPing,
         recipient_verkey,
         JSON.stringify(trustPing),
-        JSON.stringify(trustPingTags)
+        JSON.stringify(trustPingTags),
       );
       const event: EventInterface = {
         message: `You are now connected with ${connection.theirLabel}`,
         type: 'Connection',
-        messageData: JSON.stringify({ connection }),
-      }
+        messageData: JSON.stringify({connection}),
+      };
       EventRegister.emit('SDKEvent', event);
       return true;
-    }
-    catch (error) {
-      console.log('Connection - Accept response error = ', JSON.stringify(error));
+    } catch (error) {
+      console.log(
+        'Connection - Accept response error = ',
+        JSON.stringify(error),
+      );
       throw error;
     }
   }
@@ -216,21 +230,20 @@ class ConnectionService {
   /**
    * @description Create a connection response message for the connection with the specified connection id.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
-   * @return {*} 
+   * @return {*}
    * @memberof ConnectionService
    */
-  async createResponse(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage) {
+  async createResponse(inboundMessage: InboundMessage) {
     try {
-
-      const { message, recipient_verkey } = inboundMessage;
+      const {message, recipient_verkey} = inboundMessage;
       const query = {
-        connectionId: recipient_verkey
-      }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
-
+        connectionId: recipient_verkey,
+      };
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(
+        RecordType.Connection,
+        JSON.stringify(query),
+      );
 
       if (!connection) {
         throw new Error(`Connection for verkey ${recipient_verkey} not found!`);
@@ -248,24 +261,35 @@ class ConnectionService {
       connection.updatedAt = new Date().toISOString();
 
       if (!connection.theirDidDoc.service[0].recipientKeys[0]) {
-        throw new Error(`Connection with verkey ${connection.verkey} has no recipient keys.`);
+        throw new Error(
+          `Connection with verkey ${connection.verkey} has no recipient keys.`,
+        );
       }
 
-      const connectionResponse = createConnectionResponseMessage(connection, typeMessage['@id']);
-      const signedConnectionResponse = await sign(configJson, credentialsJson, connection.verkey, connectionResponse, 'connection');
+      const connectionResponse = createConnectionResponseMessage(
+        connection,
+        typeMessage['@id'],
+      );
+      const signedConnectionResponse = await sign(
+        connection.verkey,
+        connectionResponse,
+        'connection',
+      );
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, signedConnectionResponse)
+      await sendOutboundMessage(connection, signedConnectionResponse);
 
       await WalletStorageService.updateWalletRecord(
-        configJson, credentialsJson,
         RecordType.Connection,
         connection.verkey,
         JSON.stringify(connection),
-        '{}'
+        '{}',
       );
       return true;
     } catch (error) {
-      console.log('Connection - Accept request error = ', JSON.stringify(error));
+      console.log(
+        'Connection - Accept request error = ',
+        JSON.stringify(error),
+      );
       throw error;
     }
   }
@@ -273,8 +297,6 @@ class ConnectionService {
   /**
    * @description Create connection and DidDoc. Also register the verkey on mediator agent
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {Object} didJson
    * @param {string} [label]
    * @param {string} [logo]
@@ -282,23 +304,48 @@ class ConnectionService {
    * @return {*}  {Promise<Connection>}
    * @memberof ConnectionService
    */
-  async createConnection(configJson: WalletConfig,
-    credentialsJson: WalletCredentials,
+  async createConnection(
     didJson: Object,
     label?: string,
     logo?: string,
     organizationId?: string,
   ): Promise<Connection> {
     try {
-      const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(JSON.stringify(configJson), JSON.stringify(credentialsJson), JSON.stringify(didJson), false);
+      const wallet: any = await DatabaseServices.getWallet();
+
+      const [
+        pairwiseDid,
+        verkey,
+      ]: string[] = await ArnimaSdk.createAndStoreMyDid(
+        wallet.walletConfig,
+        wallet.walletCredentials,
+        JSON.stringify(didJson),
+        false,
+      );
 
       const apiBody = {
         publicVerkey: DatabaseServices.getVerKey(),
-        verkey: verkey
+        verkey: verkey,
       };
-      await NetworkServices(getServiceEndpoint() + 'verkey', 'POST', JSON.stringify(apiBody));
-      const publicKey = new PublicKey(`${pairwiseDid}#1`, PublicKeyType.ED25519_SIG_2018, pairwiseDid, verkey);
-      const service = new Service(`${pairwiseDid};indy`, DatabaseServices.getServiceEndpoint(), [verkey], [DatabaseServices.getRoutingKeys()], 0, 'IndyAgent');
+      await NetworkServices(
+        getServiceEndpoint() + 'verkey',
+        'POST',
+        JSON.stringify(apiBody),
+      );
+      const publicKey = new PublicKey(
+        `${pairwiseDid}#1`,
+        PublicKeyType.ED25519_SIG_2018,
+        pairwiseDid,
+        verkey,
+      );
+      const service = new Service(
+        `${pairwiseDid};indy`,
+        DatabaseServices.getServiceEndpoint(),
+        [verkey],
+        [DatabaseServices.getRoutingKeys()],
+        0,
+        'IndyAgent',
+      );
       const auth = new Authentication(publicKey);
       const did_doc = new DidDoc(pairwiseDid, [auth], [publicKey], [service]);
 
@@ -318,9 +365,11 @@ class ConnectionService {
       };
 
       return connection;
-    }
-    catch (error) {
-      console.log('Connection - Create connection error = ', JSON.stringify(error));
+    } catch (error) {
+      console.log(
+        'Connection - Create connection error = ',
+        JSON.stringify(error),
+      );
       throw error;
     }
   }

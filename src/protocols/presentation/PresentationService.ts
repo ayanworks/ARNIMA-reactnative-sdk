@@ -11,7 +11,6 @@ import { Pool } from '../../pool/PoolInterface';
 import { Presentation } from './PresentationInterface';
 import { PresentationState } from './PresentationState';
 import { RecordType, decodeBase64, sendOutboundMessage } from '../../utils/Helpers';
-import { WalletConfig, WalletCredentials } from '../../wallet/WalletInterface';
 import DatabaseServices from '../../storage';
 import WalletStorageService from '../../wallet/WalletStorageService';
 
@@ -20,25 +19,23 @@ class PresentationService {
   /**
    * @description Process a received presentation message, This will only store record.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {string} messageId
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Connection>}
    * @memberof PresentationService
    */
-  async requestReceived(configJson: WalletConfig, credentialsJson: WalletCredentials, messageId: string, inboundMessage: InboundMessage): Promise<Connection> {
+  async requestReceived(messageId: string, inboundMessage: InboundMessage): Promise<Connection> {
     try {
       const { recipient_verkey } = inboundMessage;
       const query = {
         connectionId: recipient_verkey
       }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const message: Message = (inboundMessage.message);
       const presentationQuery = {
         presentationId: message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id']
       }
-      const presentation: Presentation = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Presentation, JSON.stringify(presentationQuery));
+      const presentation: Presentation = await WalletStorageService.getWalletRecordFromQuery(RecordType.Presentation, JSON.stringify(presentationQuery));
       const presentationsAttach = message['presentations~attach'];
       const presentationJson = await decodeBase64(presentationsAttach[0].data.base64);
       const presentProofRecord: Presentation = {
@@ -59,8 +56,6 @@ class PresentationService {
 
       if (message.hasOwnProperty('~thread') && Object.keys(message['~thread']).length > 0) {
         await WalletStorageService.updateWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Presentation,
           message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
           JSON.stringify(presentProofRecord),
@@ -69,8 +64,6 @@ class PresentationService {
       } else {
         presentProofRecord.createdAt = new Date().toISOString();
         await WalletStorageService.addWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Presentation,
           message['@id'],
           JSON.stringify(presentProofRecord),
@@ -87,25 +80,19 @@ class PresentationService {
   /**
    * @description Create a propose presentation message not bound to an existing presentation exchange.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {string} connectionId
    * @param {object} proposePresentation
    * @param {string} comment
    * @return {*}  {Promise<Boolean>}
    * @memberof PresentationService
    */
-  async createProposal(configJson: WalletConfig, credentialsJson: WalletCredentials,
-    connectionId: string,
-    proposePresentation: object,
-    comment: string): Promise<Boolean> {
-
+  async createProposal(connectionId: string, proposePresentation: object, comment: string): Promise<Boolean> {
     try {
       const query = {
         connectionId: connectionId
       }
 
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
 
       const presentationProposal = await presentationProposalMessage(proposePresentation, comment);
       const presentProofRecord: Presentation = await {
@@ -124,11 +111,9 @@ class PresentationService {
 
       if (presentProofRecord) {
 
-        await sendOutboundMessage(configJson, credentialsJson, connection, presentationProposal)
+        await sendOutboundMessage(connection, presentationProposal)
 
         await WalletStorageService.addWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Presentation,
           presentationProposal['@id'],
           JSON.stringify(presentationProposal),
@@ -148,23 +133,21 @@ class PresentationService {
   /**
    * @description Process a received request presentation message.It will only create a new, or update the existing proof record
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {string} messageId
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Connection>}
    * @memberof PresentationService
    */
-  async processRequest(configJson: WalletConfig, credentialsJson: WalletCredentials, messageId: string, inboundMessage: InboundMessage): Promise<Connection> {
+  async processRequest(messageId: string, inboundMessage: InboundMessage): Promise<Connection> {
     try {
 
       const { recipient_verkey } = inboundMessage;
       const query = { connectionId: recipient_verkey }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const message: Message = inboundMessage.message;
       if (message.hasOwnProperty('comment') && message.comment.includes(':::auto:::')) {
-        const response = await this.createPresentation(configJson, credentialsJson, inboundMessage, true);
-        if (response) { await WalletStorageService.deleteWalletRecord(configJson, credentialsJson, RecordType.SSIMessage, messageId) }
+        const response = await this.createPresentation(inboundMessage, true);
+        if (response) { await WalletStorageService.deleteWalletRecord(RecordType.SSIMessage, messageId) }
         return connection;
       } else {
 
@@ -186,8 +169,6 @@ class PresentationService {
 
         if (message.hasOwnProperty('~thread') && Object.keys(message['~thread']).length > 0) {
           await WalletStorageService.updateWalletRecord(
-            configJson,
-            credentialsJson,
             RecordType.Presentation,
             message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
             JSON.stringify(presentProofRecord),
@@ -196,8 +177,6 @@ class PresentationService {
         } else {
           presentProofRecord.createdAt = new Date().toISOString();
           await WalletStorageService.addWalletRecord(
-            configJson,
-            credentialsJson,
             RecordType.Presentation,
             message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
             JSON.stringify(presentProofRecord),
@@ -216,14 +195,12 @@ class PresentationService {
   /**
    * @description Create a presentation message as response to a received presentation request.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
    * @param {boolean} [revealAttributes=true]
    * @return {*}  {Promise<Boolean>}
    * @memberof PresentationService
    */
-  async createPresentation(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage, revealAttributes: boolean = true, presentationObj?: object): Promise<Boolean> {
+  async createPresentation(inboundMessage: InboundMessage, revealAttributes: boolean = true, presentationObj?: object): Promise<Boolean> {
     try {
       // TODO : Need to find a way for realm db typing
       const sdkDB: any = DatabaseServices.getWallet();
@@ -233,7 +210,7 @@ class PresentationService {
       }
       let connection: Connection;
       if (recipient_verkey !== null) {
-        connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+        connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       }
       const message: Message = inboundMessage.message;
       const presentationRequest = message['request_presentations~attach'];
@@ -241,7 +218,7 @@ class PresentationService {
       const queryPool = {
         isSelected: JSON.stringify(true)
       }
-      const { poolName, poolConfig }: Pool = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Pool, JSON.stringify(queryPool));
+      const { poolName, poolConfig }: Pool = await WalletStorageService.getWalletRecordFromQuery(RecordType.Pool, JSON.stringify(queryPool));
       const [requestedCredentials, revocStates] = await this.getRequestedCredentialsForProofRequest(proofRequest, presentationObj, poolName, poolConfig, sdkDB.publicDid, revealAttributes)
       const credentialObjects: Array<Object> = []
       const credIds = []
@@ -256,11 +233,7 @@ class PresentationService {
       }
 
       for (const credentialId of new Set(credIds)) {
-        const credentialInfo = await ArnimaSdk.proverGetCredential(
-          JSON.stringify(configJson),
-          JSON.stringify(credentialsJson),
-          credentialId
-        )
+        const credentialInfo = await ArnimaSdk.proverGetCredential(credentialId)
         credentialObjects.push(JSON.parse(credentialInfo))
       }
       const [schemas, credDefs] = await Promise.all([
@@ -269,8 +242,6 @@ class PresentationService {
       );
 
       const presentation = await ArnimaSdk.proverCreateProof(
-        JSON.stringify(configJson),
-        JSON.stringify(credentialsJson),
         JSON.stringify(proofRequest),
         JSON.stringify(requestedCredentials),
         sdkDB.masterSecretId,
@@ -297,12 +268,10 @@ class PresentationService {
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
       );
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, creatPresentationMessageObject, undefined, message['~service'])
+      await sendOutboundMessage(connection, creatPresentationMessageObject, undefined, message['~service'])
 
       if (recipient_verkey !== null) {
         await WalletStorageService.updateWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Presentation,
           message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
           JSON.stringify(presentProofRecord),
@@ -319,7 +288,7 @@ class PresentationService {
 
   public async generateSchemaJson(credentialObjects: any[], poolName: string, poolConfig: string, publicDid: string): Promise<any> {
     try {
-      let schemas = {};
+      let schemas = { };
       const schemaIds = credentialObjects.map((c) => c.schema_id)
       for (const schemaId of schemaIds) {
         const schema = await ArnimaSdk.getSchemasJson(poolName, poolConfig, publicDid, schemaId)
@@ -333,7 +302,7 @@ class PresentationService {
 
   public async generateCredDefJson(credentialObjects: any[], poolName: string, poolConfig: string, publicDid: string): Promise<any> {
     try {
-      let credDefs = {};
+      let credDefs = { };
       const credDefIds = credentialObjects.map((c) => c.cred_def_id)
       for (const credDefId of credDefIds) {
         const credDef = await ArnimaSdk.getCredDef(publicDid, credDefId, poolName, poolConfig)
@@ -371,11 +340,11 @@ class PresentationService {
     revealAttributes?: boolean,
   ): Promise<any> {
     try {
-      const revocStates: Object = {}
+      const revocStates: Object = { }
       const requestedCredentials = {
-        self_attested_attributes: {},
-        requested_attributes: {},
-        requested_predicates: {},
+        self_attested_attributes: { },
+        requested_attributes: { },
+        requested_predicates: { },
       }
       let revRegIdMatcher: string = '';
       let revRegIdJsonMatcher: Object = {};
@@ -449,7 +418,7 @@ class PresentationService {
         if (value.restrictions) {
           let timestampObj: {
             timestamp?: number
-          } = {};
+          } = { };
 
           if (credentialMatch.cred_info.rev_reg_id !== null) {
             if (credentialMatch.cred_info.rev_reg_id !== revRegIdMatcher) {
@@ -544,7 +513,7 @@ class PresentationService {
         if (value.restrictions) {
           let timestampObj: {
             timestamp?: number
-          } = {};
+          } = { };
 
           if (credMatch.cred_info.rev_reg_id !== null) {
             if (credMatch.cred_info.rev_reg_id !== revRegIdMatcher) {
@@ -628,18 +597,16 @@ class PresentationService {
   /**
    * @description Create a request presentation message not bound to an existing presentation exchange.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {string} connectionId
    * @param {object} proofRequest
    * @param {string} comment
    * @return {*}  {Promise<Boolean>}
    * @memberof PresentationService
    */
-  async createRequest(configJson: WalletConfig, credentialsJson: WalletCredentials, connectionId: string, proofRequest: object, comment: string): Promise<Boolean> {
+  async createRequest(connectionId: string, proofRequest: object, comment: string): Promise<Boolean> {
     try {
       const query = { connectionId: connectionId }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const requestPresentation = await requestPresentationMessage(
         JSON.stringify(proofRequest),
         comment,
@@ -654,15 +621,13 @@ class PresentationService {
         updatedAt: new Date().toISOString(),
       }
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, requestPresentation)
+      await sendOutboundMessage(connection, requestPresentation)
 
       const presentationProofTags: Object = {
         presentationId: requestPresentation['@id'],
         connectionId: connection.verkey,
       }
       await WalletStorageService.addWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.Presentation,
         requestPresentation['@id'],
         JSON.stringify(presentProofRecord),
@@ -680,37 +645,35 @@ class PresentationService {
   /**
    * @description Verify an indy proof object. Will also ack to sender.
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {string} messageId
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Boolean>}
    * @memberof PresentationService
    */
-  async verifyProof(configJson: WalletConfig, credentialsJson: WalletCredentials, messageId: string, inboundMessage: InboundMessage): Promise<Boolean> {
+  async verifyProof(messageId: string, inboundMessage: InboundMessage): Promise<Boolean> {
     try {
       // TODO : Need to find a way for realm db typing
       const sdkDB: any = DatabaseServices.getWallet();
       const message: Message = JSON.parse(inboundMessage.message);
       const presentationQuery = { messageId: messageId }
-      const presentationRecord = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Presentation, JSON.stringify(presentationQuery));
+      const presentationRecord = await WalletStorageService.getWalletRecordFromQuery(RecordType.Presentation, JSON.stringify(presentationQuery));
       const presentProofRecord = presentationRecord.presentation;
       const presentationRequest = presentationRecord.presentationRequest;
 
       const { recipient_verkey } = inboundMessage;
 
       const query = { connectionId: recipient_verkey }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const queryPool = {
         isSelected: JSON.stringify(true)
       }
 
-      const { poolName, poolConfig }: Pool = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Pool, JSON.stringify(queryPool));
+      const { poolName, poolConfig }: Pool = await WalletStorageService.getWalletRecordFromQuery(RecordType.Pool, JSON.stringify(queryPool));
 
-      const schemas: Object = {}
-      const credDefs: Object = {}
-      const revRegDefs: Object = {}
-      const revRegsObj: Object = {}
+      const schemas: Object = { }
+      const credDefs: Object = { }
+      const revRegDefs: Object = { }
+      const revRegsObj: Object = { }
       const identifiers = JSON.parse(presentationRequest).identifiers
 
       for (const identifier of new Set(identifiers)) {
@@ -753,11 +716,9 @@ class PresentationService {
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id']
       );
 
-      await sendOutboundMessage(configJson, credentialsJson, connection, presentationAcknowledgeMessage)
+      await sendOutboundMessage(connection, presentationAcknowledgeMessage)
 
       await WalletStorageService.updateWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.Presentation,
         message.hasOwnProperty('~thread') ? Object.keys(message['~thread']).length > 0 === false ? message['@id'] : message['~thread'].thid : message['@id'],
         JSON.stringify(presentationRecord),

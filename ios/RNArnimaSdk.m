@@ -47,6 +47,11 @@ RCT_EXPORT_METHOD(openInitWallet: (NSString *)config
     }
 }
 
+-(IndyHandle) getWalletHandle
+{
+    return WalletHandleNumber;
+}
+
 RCT_EXPORT_METHOD(getRequestRedirectionUrl:(NSString *)url
                   resolver: (RCTPromiseResolveBlock) resolve
                   rejecter: (RCTPromiseRejectBlock) reject)
@@ -94,16 +99,15 @@ RCT_EXPORT_METHOD(createWallet:
     }];
 }
 
-RCT_EXPORT_METHOD(exportWallet:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(exportWallet
                   :(NSString *)config
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
-        if (walletHandle > 0) {
-            [[IndyWallet sharedInstance] exportWalletWithHandle:walletHandle exportConfigJson:config completion:^(NSError *errorWhileExportWallet) {
+    IndyHandle wallet = [self getWalletHandle];
+    
+        if (wallet > 0) {
+            [[IndyWallet sharedInstance] exportWalletWithHandle:wallet exportConfigJson:config completion:^(NSError *errorWhileExportWallet) {
                 if(errorWhileExportWallet.code > 1) {
                     [self rejectResult:errorWhileExportWallet reject:reject];
                 }
@@ -112,7 +116,6 @@ RCT_EXPORT_METHOD(exportWallet:
                 }
             }];
         }
-    }];
 }
 
 RCT_EXPORT_METHOD(importWallet:
@@ -231,17 +234,15 @@ RCT_EXPORT_METHOD(createAndStoreMyDid:
     }];
 }
 
-RCT_EXPORT_METHOD(addWalletRecord:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
-                  :(NSString *)Type
+RCT_EXPORT_METHOD(addWalletRecord:(NSString *)Type
                   :(NSString *)Id
                   :(NSString *)value
                   :(NSString *)tags
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyNonSecrets addRecordInWallet:walletHandle type:Type id:Id value:value tagsJson:tags completion:^(NSError *errorWhileAddRecord) {
                 if(errorWhileAddRecord.code > 1) {
@@ -252,22 +253,16 @@ RCT_EXPORT_METHOD(addWalletRecord:
                 }
             }];
         }
-        
-    }];
 }
 
-RCT_EXPORT_METHOD(updateWalletRecord:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(updateWalletRecord
                   :(NSString *)type
                   :(NSString *)Id
                   :(NSString *)value
                   :(NSString *)tag
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
-    
-    
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
         if (walletHandle > 0) {
             [IndyNonSecrets updateRecordValueInWallet:walletHandle type:type id:Id value:value completion:^(NSError *errorWhileUpdateRecordValue) {
                 if(errorWhileUpdateRecordValue.code > 1) {
@@ -290,19 +285,17 @@ RCT_EXPORT_METHOD(updateWalletRecord:
                 }
             }];
         }
-        
-    }];
+    
 }
 
 
-RCT_EXPORT_METHOD(deleteWalletRecord:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(deleteWalletRecord
                   :(NSString *)type
                   :(NSString *)Id
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject){
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyNonSecrets deleteRecordInWallet:walletHandle type:type id:Id completion:^(NSError *errorWhileDeleteREcord) {
                 if(errorWhileDeleteREcord.code > 1) {
@@ -313,21 +306,17 @@ RCT_EXPORT_METHOD(deleteWalletRecord:
                 }
             }];
         }
-    }];
-    
-    
 }
 
 
-RCT_EXPORT_METHOD(getWalletRecordFromQuery:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(getWalletRecordFromQuery
                   :(NSString *)type
                   :(NSString *)query
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyNonSecrets openSearchInWallet:walletHandle type:type queryJson:query optionsJson:@"{\"retrieveTags\":true,\"retrieveType  \":true, \"retrieveType\": true }" completion:^(NSError *errorOS, IndyHandle searchHandle) {
                 if(errorOS.code > 1) {
@@ -345,20 +334,16 @@ RCT_EXPORT_METHOD(getWalletRecordFromQuery:
                 }
             }];
         }
-        
-    }];
-    
 }
 
 
-RCT_EXPORT_METHOD(cryptoSign:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(cryptoSign
                   :(NSString *)signerKey
                   :(NSString *)messageRaw
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             NSData *jsonData = [messageRaw dataUsingEncoding:NSUTF8StringEncoding];
             [IndyCrypto signMessage:jsonData key:signerKey walletHandle:walletHandle completion:^(NSError *errorWhileSignMessage, NSData *signature) {
@@ -381,20 +366,16 @@ RCT_EXPORT_METHOD(cryptoSign:
                 }
             }];
         }
-        
-    }];
-    
 }
 
-RCT_EXPORT_METHOD(packMessage:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(packMessage
                   :(NSString *)message
                   :(NSArray *)receiverKeys
                   :(NSString *)senderVerkey
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyCrypto createKey:@"{}" walletHandle:walletHandle completion:^(NSError *errorWhileCreateKey, NSString *verkey1) {
                 if(errorWhileCreateKey.code > 1) {
@@ -419,19 +400,15 @@ RCT_EXPORT_METHOD(packMessage:
                 }
             }];
         }
-    }];
-    
-    
 }
 
-RCT_EXPORT_METHOD(unpackMessage:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(unpackMessage
                   :(NSString *)message
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
             [IndyCrypto unpackMessage:messageData walletHandle:walletHandle completion:^(NSError *errorWhileUnpackMessage, NSData *unPackMessageData) {
@@ -444,15 +421,9 @@ RCT_EXPORT_METHOD(unpackMessage:
                 }
             }];
         }
-        
-    }];
-    
-    
 }
 
-RCT_EXPORT_METHOD(cryptoVerify:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(cryptoVerify
                   :(NSString *)signVerkey
                   :(NSString *)message
                   :(NSString *)signatureRaw
@@ -460,7 +431,8 @@ RCT_EXPORT_METHOD(cryptoVerify:
                   reject:(RCTPromiseRejectBlock)reject) {
     
     NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             NSData *revocRegDefJsonData = [signatureRaw dataUsingEncoding:NSUTF8StringEncoding];
             id generatedRevocRegDefJsonData = [NSJSONSerialization JSONObjectWithData:revocRegDefJsonData options:0 error:nil];
@@ -494,8 +466,6 @@ RCT_EXPORT_METHOD(cryptoVerify:
                 }
             }];
         }
-        
-    }];
 }
 
 RCT_EXPORT_METHOD(createPoolLedgerConfig:
@@ -537,9 +507,7 @@ RCT_EXPORT_METHOD(createPoolLedgerConfig:
 
 
 
-RCT_EXPORT_METHOD(proverCreateCredentialReq:
-                  (NSString *)walletConfig
-                  :(NSString *)credentialsJson
+RCT_EXPORT_METHOD(proverCreateCredentialReq
                   :(NSString *)proverDid
                   :(NSString *)credentialOfferJson
                   :(NSString *)credentialDefJson
@@ -547,7 +515,8 @@ RCT_EXPORT_METHOD(proverCreateCredentialReq:
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
-    [self openWallet:walletConfig :credentialsJson completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyAnoncreds proverCreateCredentialReqForCredentialOffer:credentialOfferJson credentialDefJSON:credentialDefJson proverDID:proverDid masterSecretID:masterSecretId walletHandle:walletHandle completion:^(NSError *errorWhileCreateRequest, NSString *credReqJSON, NSString *credReqMetadataJSON) {
                 if(errorWhileCreateRequest.code > 1) {
@@ -561,12 +530,9 @@ RCT_EXPORT_METHOD(proverCreateCredentialReq:
                 }
             }];
         }
-    }];
 }
 
-RCT_EXPORT_METHOD(proverStoreCredential:
-                  (NSString *)walletConfig
-                  :(NSString *)credentialsJson
+RCT_EXPORT_METHOD(proverStoreCredential
                   :(NSString *)credId
                   :(NSString *)credReqMetadataJson
                   :(NSString *)credJson
@@ -574,7 +540,8 @@ RCT_EXPORT_METHOD(proverStoreCredential:
                   :(NSString *)revRegDefJson
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject){
-    [self openWallet:walletConfig :credentialsJson completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyAnoncreds proverStoreCredential:credJson credID:credId credReqMetadataJSON:credReqMetadataJson credDefJSON:credDefJson revRegDefJSON:revRegDefJson walletHandle:walletHandle completion:^(NSError *errorWhileStoreCredential, NSString *outCredID) {
                 if(errorWhileStoreCredential.code > 1) {
@@ -585,16 +552,14 @@ RCT_EXPORT_METHOD(proverStoreCredential:
                 }
             }];
         }
-    }];
 }
 
-RCT_EXPORT_METHOD(proverGetCredentials:
-                  (NSString *)walletConfig
-                  :(NSString *)credentialsJson
+RCT_EXPORT_METHOD(proverGetCredentials
                   :(NSString *)filter
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject){
-    [self openWallet:walletConfig :credentialsJson completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyAnoncreds proverGetCredentialsForFilter:filter walletHandle:walletHandle completion:^(NSError *errorWhileGetCredential, NSString *credentialsJSON) {
                 if(errorWhileGetCredential.code > 1) {
@@ -605,8 +570,6 @@ RCT_EXPORT_METHOD(proverGetCredentials:
                 }
             }];
         }
-    }];
-    
 }
 
 RCT_EXPORT_METHOD(getRevocRegDef:
@@ -882,13 +845,12 @@ RCT_EXPORT_METHOD(proverCloseCredentialsSearchForProofReq
 }
 
 RCT_EXPORT_METHOD(proverGetCredential
-                  :(NSString *) walletConfig
-                  :(NSString *) walletCredentials
                   :(NSString *) credId
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject) {
     
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
+
         if (walletHandle > 0) {
             [IndyAnoncreds proverGetCredentialWithId:credId walletHandle:walletHandle completion:^(NSError *error, NSString *credentialJSON) {
                 if(error.code > 1) {
@@ -899,8 +861,6 @@ RCT_EXPORT_METHOD(proverGetCredential
                 }
             }];
         }
-    }];
-    
 }
 
 RCT_EXPORT_METHOD(getSchemasJson
@@ -1279,9 +1239,7 @@ RCT_EXPORT_METHOD(createRevocationStateObject
 }
 
 
-RCT_EXPORT_METHOD(proverCreateProof:
-                  (NSString *)walletConfig
-                  :(NSString *)walletCredentials
+RCT_EXPORT_METHOD(proverCreateProof
                   :(NSString *)proofRequest
                   :(NSString *)requestedCredentials
                   :(NSString *)masterSecret
@@ -1291,7 +1249,7 @@ RCT_EXPORT_METHOD(proverCreateProof:
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject){
     
-    [self openWallet:walletConfig :walletCredentials completion:^(IndyHandle walletHandle) {
+    IndyHandle walletHandle = [self getWalletHandle];
         if (walletHandle > 0) {
             [IndyAnoncreds proverCreateProofForRequest:proofRequest requestedCredentialsJSON:requestedCredentials masterSecretID:masterSecret schemasJSON:schemas credentialDefsJSON:credentialDefs revocStatesJSON:revocObject walletHandle:walletHandle completion:^(NSError *errorWhileCreateProofRequest, NSString *proofJSON) {
                 if(errorWhileCreateProofRequest.code > 1) {
@@ -1299,12 +1257,9 @@ RCT_EXPORT_METHOD(proverCreateProof:
                 }
                 else {
                     resolve(proofJSON);
-                    
                 }
             }];
         }
-    }];
-    
 }
 
 @end

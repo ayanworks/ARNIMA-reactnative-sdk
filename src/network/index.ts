@@ -3,7 +3,11 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-export const NetworkServices: Function = async (url: string, apiType: string, apiBody: string) => {
+export const NetworkServices: Function = async (
+  url: string,
+  apiType: string,
+  apiBody: string,
+) => {
   try {
     const response = await fetch(url, {
       method: apiType,
@@ -12,23 +16,25 @@ export const NetworkServices: Function = async (url: string, apiType: string, ap
         Accept: 'application/json',
         'Content-Type': 'application/json',
       },
-    });
-    const responseJson = await response.json();
+    })
+    const responseJson = await response.json()
     if (responseJson.hasOwnProperty('success')) {
-      return responseJson;
+      return responseJson
     } else {
-      throw responseJson;
+      throw responseJson
     }
   } catch (error) {
-    throw error;
+    throw error
   }
-};
+}
 
-export const OutboundAgentMessage: Function = async (url: string, apiType: string, apiBody: string) => {
+export const OutboundAgentMessage: Function = async (
+  url: string,
+  apiType: string,
+  apiBody: string,
+) => {
   try {
-    return new Promise(async function (
-      resolve, reject
-    ) {
+    return new Promise(async function(resolve, reject) {
       const response = await fetch(url, {
         method: apiType,
         body: apiBody,
@@ -36,18 +42,22 @@ export const OutboundAgentMessage: Function = async (url: string, apiType: strin
           Accept: 'application/json',
           'Content-Type': 'application/ssi-agent-wire',
         },
-      }).then((response) => {
-        response.json()
       })
-        .then((json) => {
-          resolve(json);
+        .then(response => {
+          response.json()
         })
-        .catch((error) => {
-          reject('We are not able to communicate with the agent at this moment, Please try again later');
-        });
-    }
-    )
+        .then(json => {
+          resolve(json)
+        })
+        .catch(error => {
+          reject(
+            'We are not able to communicate with the agent at this moment, Please try again later',
+          )
+        })
+    })
   } catch (error) {
-    throw new Error('We are not able to communicate with the agent at this moment, Please try again later');
+    throw new Error(
+      'We are not able to communicate with the agent at this moment, Please try again later',
+    )
   }
-};
+}

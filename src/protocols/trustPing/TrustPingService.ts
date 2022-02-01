@@ -9,7 +9,6 @@ import { createTrustPingResponseMessage } from './TrustPingMessages';
 import { InboundMessage, Message } from '../../utils/Types';
 import { RecordType, sendOutboundMessage } from '../../utils/Helpers';
 import { TrustPingState } from './TrustPingState';
-import { WalletConfig, WalletCredentials } from '../../wallet/WalletInterface';
 import WalletStorageService from '../../wallet/WalletStorageService';
 
 class TrustPingService {
@@ -17,17 +16,15 @@ class TrustPingService {
   /**
    * @description Process trust ping response message and update the status
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Connection>}
    * @memberof TrustPingService
    */
-  async saveTrustPingResponse(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage): Promise<Connection> {
+  async saveTrustPingResponse(inboundMessage: InboundMessage): Promise<Connection> {
     try {
       const { recipient_verkey } = inboundMessage;
       const query = { connectionId: recipient_verkey }
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
       const message: Message = JSON.parse(inboundMessage.message);
       const trustPingId = message['~thread'].thid;
       const trustPingTags = {
@@ -37,8 +34,6 @@ class TrustPingService {
       }
 
       await WalletStorageService.updateWalletRecord(
-        configJson,
-        credentialsJson,
         RecordType.TrustPing,
         recipient_verkey,
         JSON.stringify(message),
@@ -54,19 +49,17 @@ class TrustPingService {
   /**
    * @description Process trust ping message
    *
-   * @param {WalletConfig} configJson
-   * @param {WalletCredentials} credentialsJson
    * @param {InboundMessage} inboundMessage
    * @return {*}  {Promise<Connection>}
    * @memberof TrustPingService
    */
-  async processPing(configJson: WalletConfig, credentialsJson: WalletCredentials, inboundMessage: InboundMessage): Promise<Connection> {
+  async processPing(inboundMessage: InboundMessage): Promise<Connection> {
 
     try {
       const { recipient_verkey, message } = inboundMessage;
       const query = { connectionId: recipient_verkey }
 
-      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(RecordType.Connection, JSON.stringify(query));
 
       const parseMessage: Message = JSON.parse(message);
       if (connection.state != ConnectionState.COMPLETE) {
@@ -77,11 +70,9 @@ class TrustPingService {
       if (parseMessage['responseRequested']) {
         const reply = createTrustPingResponseMessage(parseMessage['@id']);
 
-        await sendOutboundMessage(configJson, credentialsJson, connection, reply)
+        await sendOutboundMessage(connection, reply)
 
         await WalletStorageService.updateWalletRecord(
-          configJson,
-          credentialsJson,
           RecordType.Connection,
           connection.verkey,
           JSON.stringify(connection),
