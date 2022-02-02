@@ -11,7 +11,7 @@ import { NativeModules } from 'react-native';
 import { WalletConfig, WalletCredentials } from '../wallet/WalletInterface';
 import BasicMessageService from '../protocols/basicMessage/BasicMessageService';
 import ConnectionService from '../protocols/connection/ConnectionService';
-import ConnectWithMediatorService from '../protocols/mediator/ConnectWithMediatorService';
+import MediatorService from '../protocols/mediator/MediatorService';
 import CredentialService from '../protocols/credential/CredentialService';
 import DatabaseServices from '../storage';
 import InboundMessageService from '../transports';
@@ -19,6 +19,7 @@ import PoolService from '../pool';
 import PresentationService from '../protocols/presentation/PresentationService';
 import WalletService from '../wallet/WalletService';
 import WalletStorageService from '../wallet/WalletStorageService';
+import { Connection } from 'react-native-arnima-sdk/src/protocols/connection/ConnectionInterface';
 
 const { ArnimaSdk } = NativeModules;
 
@@ -40,8 +41,8 @@ class Agent {
 
   connectWithMediator = async (url: string, apiType: string, apiBody: string) => {
     try {
-      const response = await ConnectWithMediatorService.ConnectWithMediator(url, apiType, apiBody);
       this.wallet = await DatabaseServices.getWallet();
+      const response = await MediatorService.ConnectWithMediator(url, apiType, apiBody);
       return response;
     }
     catch (error) {
@@ -50,9 +51,49 @@ class Agent {
     }
   }
 
+  connectMediatorWithInvite = async (invitationUrl: string) => {
+    const connection =  await this.acceptInvitation({},invitationUrl,'');
+
+    setTimeout(() => {
+      ConnectionService.connectionStatus(
+        JSON.parse(this.wallet.walletConfig),
+        JSON.parse(this.wallet.walletCredentials),
+        connection.verkey,
+        )
+    }, 5000);
+    connection.state == 'COMPLETE'
+  }
+
+  mediationRequest = async (connection: Connection) => {
+    try {
+      await MediatorService.mediationRequest(connection);
+    } catch (error) {
+      console.log("Agent - mediationRequest error = ", error);
+      throw error;
+    }
+  }
+
+  pickupMessages = async (mediatorConnection: Connection) => {
+    try {
+      await MediatorService.pickupMessages(mediatorConnection);
+    } catch (error) {
+      console.log("Agent - pickupMessages error = ", error);
+      throw error;
+    }
+  }
+
+  sendImplicitMessages = async (mediatorConnection: Connection) => {
+    try {
+      await MediatorService.sendImplicitMessages(mediatorConnection);
+    } catch (error) {
+      console.log("Agent - pickupMessages error = ", error);
+      throw error;
+    }
+  }
+
   updateMediator = async (url: string, apiType: string, apiBody: string) => {
     try {
-      return await ConnectWithMediatorService.updateMediator(url, apiType, apiBody);
+      return await MediatorService.updateMediator(url, apiType, apiBody);
     }
     catch (error) {
       console.log("Agent - Update mediator error = ", error);
@@ -115,10 +156,17 @@ class Agent {
     }
   }
 
-  acceptInvitation = async (didJson: Object, message: any, logo: string,) => {
+  acceptInvitation = async (didJson: Object, message: any, logo: string) => {
     try {
+      this.wallet = await DatabaseServices.getWallet();
       const invitation = decodeInvitationFromUrl(message);
-      return await ConnectionService.acceptInvitation(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), didJson, invitation, logo);
+      return await ConnectionService.acceptInvitation(
+        JSON.parse(this.wallet.walletConfig),
+        JSON.parse(this.wallet.walletCredentials),
+        didJson,
+        invitation,
+        logo,
+      );
     }
     catch (error) {
       console.log("Agent - Accept invitation error = ", error);
@@ -129,6 +177,16 @@ class Agent {
   getConnectionRecord = async (query: Object) => {
     try {
       return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.Connection, JSON.stringify(query));
+    }
+    catch (error) {
+      console.log("Agent - Get all connections error = ", error);
+      throw error;
+    }
+  }
+
+  getMediatorRecord = async (query: Object) => {
+    try {
+      return await WalletStorageService.getWalletRecordsFromQuery(JSON.parse(this.wallet.walletConfig), JSON.parse(this.wallet.walletCredentials), RecordType.MediatorAgent, JSON.stringify(query));
     }
     catch (error) {
       console.log("Agent - Get all connections error = ", error);

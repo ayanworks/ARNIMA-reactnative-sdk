@@ -11,7 +11,7 @@ export function createTrustPingMessage(responseRequested: boolean = true, commen
     '@id': uuidv4(),
     '@type': MessageType.TrustPingMessage,
     ...(comment && { comment }),
-    responseRequested,
+    response_requested: responseRequested,
   };
 }
 
