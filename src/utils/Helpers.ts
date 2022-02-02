@@ -3,9 +3,9 @@
   SPDX-License-Identifier: Apache-2.0
 */
 
-import {Connection} from '../protocols/connection/ConnectionInterface';
+import {Connection, ConnectionProps} from '../protocols/connection/ConnectionInterface';
 import {createForwardMessage} from '../protocols/connection/ConnectionMessages';
-import {InboundMessage, OutboundMessage} from './Types';
+import {InboundMessage, OOBService, OutboundMessage} from './Types';
 import {InvitationDetails} from '../protocols/connection/InvitationInterface';
 import {Message} from './Types';
 import {NativeModules, Platform} from 'react-native';
@@ -13,6 +13,9 @@ import {OutboundAgentMessage} from '../network';
 import {WalletConfig, WalletCredentials} from '../wallet/WalletInterface';
 import base64url from 'base64url';
 import DatabaseServices from '../storage';
+import MediatorService from '../protocols/mediator/MediatorService';
+import { ConnectionState } from '../protocols/connection/ConnectionState';
+import { Service } from './DidDoc';
 
 const Buffer = require('buffer').Buffer;
 global.Buffer = global.Buffer || require('buffer').Buffer;
@@ -32,7 +35,7 @@ export enum RecordType {
 
 function timestamp(): Uint8Array {
   let time = Date.now();
-  const bytes = [];
+  const bytes: number[] = [];
   for (let i = 0; i < 8; i++) {
     const byte = time & 0xff;
     bytes.push(byte);
@@ -181,7 +184,6 @@ export async function packMessage(
 ) {
   try {
     const {routingKeys, recipientKeys, senderVk, payload} = outboundMessage;
-    console.log('outboundMessage', JSON.stringify(outboundMessage, null, 2));
     const buf = Buffer.from(JSON.stringify(payload));
     let packedBufferMessage;
     if (Platform.OS === 'ios') {
@@ -286,11 +288,37 @@ export function encodeBase64(data: string) {
   return Buffer.from(JSON.stringify(data)).toString('base64');
 }
 
+function getServiceEndpointFromConnection(connection:ConnectionProps) {
+  const {theirDidDoc,state} = connection;
+  if (!theirDidDoc) {
+  throw new Error(
+    `DidDoc for connection with verkey ${connection.verkey} not found!`,
+    );
+  }
+  const service = theirDidDoc?.service
+
+  //Set the service endpoint to the one from the connection
+  let serviceEndpoint:string  = service[0].serviceEndpoint
+
+  //By default we should use the service endpoint from the connection with http protocol
+  //If the the service has websocket endpoint then use websocket service endpoint protocol
+  service.forEach(s => {
+    if(s.serviceEndpoint.includes('ws' || 'wss') && state === ConnectionState.COMPLETE){
+      serviceEndpoint = s.serviceEndpoint
+      return;
+    } else if(s.serviceEndpoint.includes('http')){
+      serviceEndpoint = s.serviceEndpoint
+    }
+  });
+
+  return serviceEndpoint
+}
+
 export async function createOutboundMessage(
   connection: Connection,
   payload: Object,
   invitation?: Message,
-  oobService?: object,
+  oobService?: OOBService,
 ) {
   if (connection) {
     const shouldUseReturnRoute = Boolean(
@@ -321,17 +349,24 @@ export async function createOutboundMessage(
       );
     }
     const {service} = theirDidDoc;
+    const serviceEndpoint = await getServiceEndpointFromConnection(connection)
+
     return {
       connection,
-      endpoint: service[0].serviceEndpoint,
+      endpoint: serviceEndpoint,
       payload,
       recipientKeys: service[0].recipientKeys,
       routingKeys: service[0].routingKeys,
       senderVk: connection.verkey,
     };
   } else {
+
+    if(!oobService) {
+      throw new Error('No oobService provided')
+    }
+
     const wallet = await DatabaseServices.getWallet();
-    const [pairwiseDid, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
+    const [, verkey]: string[] = await ArnimaSdk.createAndStoreMyDid(
       wallet.walletConfig,
       wallet.walletCredentials,
       JSON.stringify({}),
@@ -354,19 +389,27 @@ export async function sendOutboundMessage(
   connection: Connection,
   message: Object,
   invitation?: Message,
-  oobService?: object,
+  oobService?: OOBService,
 ) {
-  const outboundMessage = await createOutboundMessage(
+  const outboundMessage: OutboundMessage = await createOutboundMessage(
     connection,
     message,
     invitation,
     oobService,
   );
+  
   const outboundPackMessage = await packMessage(
     configJson,
     credentialsJson,
     outboundMessage,
   );
+
+  if(outboundMessage.endpoint.includes('ws')){
+    console.log("Websocket endpoint", outboundMessage.endpoint);
+    await MediatorService.sendWebSocketMessage(outboundMessage.endpoint, outboundPackMessage);
+    return;
+  }
+
   await OutboundAgentMessage(
     outboundMessage.endpoint,
     'POST',

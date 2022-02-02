@@ -51,6 +51,19 @@ class Agent {
     }
   }
 
+  connectMediatorWithInvite = async (invitationUrl: string) => {
+    const connection =  await this.acceptInvitation({},invitationUrl,'');
+
+    setTimeout(() => {
+      ConnectionService.connectionStatus(
+        JSON.parse(this.wallet.walletConfig),
+        JSON.parse(this.wallet.walletCredentials),
+        connection.verkey,
+        )
+    }, 5000);
+    connection.state == 'COMPLETE'
+  }
+
   mediationRequest = async (connection: Connection) => {
     try {
       await MediatorService.mediationRequest(connection);
@@ -143,7 +156,7 @@ class Agent {
     }
   }
 
-  acceptInvitation = async (didJson: Object, message: any, logo: string, isMediator: boolean = false) => {
+  acceptInvitation = async (didJson: Object, message: any, logo: string) => {
     try {
       this.wallet = await DatabaseServices.getWallet();
       const invitation = decodeInvitationFromUrl(message);
@@ -153,7 +166,6 @@ class Agent {
         didJson,
         invitation,
         logo,
-        isMediator
       );
     }
     catch (error) {

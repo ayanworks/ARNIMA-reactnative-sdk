@@ -24,12 +24,12 @@ export interface InboundMessage {
 }
 
 export interface OutboundMessage {
-  connection: Connection;
-  endpoint?: string;
+  connection?: Connection;
+  endpoint: string;
   payload: Object;
   recipientKeys: Verkey[];
-  routingKeys: Verkey[];
-  senderVk: Verkey | null;
+  routingKeys?: Verkey[];
+  senderVk: Verkey;
 }
 
 export interface OutboundPackage {
@@ -41,4 +41,10 @@ export interface OutboundPackage {
 export interface InboundConnection {
   verkey: Verkey;
   connection: Connection;
+}
+
+export interface OOBService {
+  recipientKeys: string[];
+  routingKeys?: string[];
+  serviceEndpoint: string;
 }

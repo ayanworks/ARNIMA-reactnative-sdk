@@ -12,10 +12,94 @@ import { createBatchPickupMessage, createKeylistUpdateMessage, createMediationRe
 import { Connection } from "react-native-arnima-sdk/src/protocols/connection/ConnectionInterface";
 import { NativeModules } from "react-native";
 import { createTrustPingMessage } from "react-native-arnima-sdk/src/protocols/trustPing/TrustPingMessages";
-
+import InboundService from '../../transports'
 const { ArnimaSdk } = NativeModules;
 
 class MediatorService {
+
+  private transportSessions: Map<string, WebSocket> = new Map<string, WebSocket>()
+  private webSocket: typeof WebSocket
+
+  constructor() {
+    this.webSocket = WebSocket;
+  }
+
+  async sendWebSocketMessage(endpoint: string, outboundPackMessage: string) {
+    try {
+
+      const socket = await this.resolveSocket(endpoint)
+
+      socket.send(Buffer.from(JSON.stringify(outboundPackMessage)))
+
+    } catch (error) {
+      console.log('MediatorService - sendWebSocketMessage error = ', error);
+      throw error;
+    }
+  }
+
+  private async resolveSocket(endpoint: string) {
+    // If we already have a socket connection use it
+    let socket = this.transportSessions.get(endpoint)
+
+    if (!socket) {
+      if (!endpoint) {
+        throw new Error(`Missing endpoint. I don't know how and where to send the message.`)
+      }
+      socket = await this.createSocketConnection(endpoint)
+      this.transportSessions.set(endpoint, socket)
+      this.listenOnWebSocketMessages(socket)
+    }
+
+    if (socket.readyState !== this.webSocket.OPEN) {
+      throw new Error('Socket is not open.')
+    }
+
+    return socket
+  }
+
+  private handleMessageEvent = async (event: any) => {
+    console.log('WebSocket message event received.', { url: event.target.url, data: event.data })
+    const wireMessage = JSON.parse(Buffer.from(event.data).toString('utf-8'))
+    if (wireMessage) {
+      console.log(`Response received`, wireMessage)
+      try {
+        if (wireMessage.hasOwnProperty('tag')) {
+          await InboundService.addMessages(wireMessage)
+        }
+      } catch (error) {
+        console.log('Unable to parse response message', error)
+      }
+    }
+  }
+
+  private listenOnWebSocketMessages(socket: WebSocket) {
+    socket.addEventListener('message', this.handleMessageEvent)
+  }
+
+  private createSocketConnection(endpoint: string): Promise<WebSocket> {
+    return new Promise((resolve, reject) => {
+      console.log(`Connecting to WebSocket ${endpoint}`)
+      const socket = new this.webSocket(endpoint)
+
+      socket.onopen = () => {
+        console.log(`Successfully connected to WebSocket ${endpoint}`)
+        resolve(socket)
+      }
+
+      socket.onerror = (error) => {
+        console.log(`Error while connecting to WebSocket ${endpoint}`, {
+          error,
+        })
+        reject(error)
+      }
+
+      socket.onclose = async (event) => {
+        console.log(`WebSocket closing of endpoint ${endpoint}`, { event })
+        socket.removeEventListener('message', this.handleMessageEvent)
+        this.transportSessions.delete(endpoint)
+      }
+    })
+  }
 
   async sendImplicitMessages(mediatorConnection: Connection) {
     try {

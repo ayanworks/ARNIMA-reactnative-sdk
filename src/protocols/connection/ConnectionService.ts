@@ -17,7 +17,6 @@ import { Connection } from './ConnectionInterface';
 import { ConnectionState } from './ConnectionState';
 import DatabaseServices from '../../storage';
 import { NativeModules } from "react-native";
-import { NetworkServices } from "../../network";
 import { TrustPing } from "../trustPing/TrustPingInterface";
 import { TrustPingState } from '../trustPing/TrustPingState';
 import WalletStorageService from '../../wallet/WalletStorageService';
@@ -66,7 +65,9 @@ class ConnectionService {
     credentialsJson: WalletCredentials,
     didJson: Object,
     logo: string): Promise<string> {
-    const connection: Connection = await this.createConnection(configJson, credentialsJson, didJson, '');
+
+    const routing = await MediatorService.getRouting();
+    const connection: Connection = await this.createConnection(routing, '');
 
     const connectionTags: Object = {
       connectionId: connection.verkey,
@@ -99,20 +100,16 @@ class ConnectionService {
    * @return {*}  {Promise<Connection>}
    * @memberof ConnectionService
    */
-  async acceptInvitation(configJson: WalletConfig,
+  async acceptInvitation(
+    configJson: WalletConfig,
     credentialsJson: WalletCredentials,
     didJson: Object,
     invitation: Message,
     logo: string,
-    isMediator: boolean
   ): Promise<Connection> {
     try {
       const routing = await MediatorService.getRouting();
       const connection: Connection = await this.createConnection(
-        configJson,
-        credentialsJson,
-        didJson,
-        isMediator,
         routing,
         invitation.label,
         invitation.hasOwnProperty('alias') ? invitation.alias.logoUrl : '',
@@ -293,10 +290,6 @@ class ConnectionService {
    * @memberof ConnectionService
    */
   async createConnection(
-    configJson: WalletConfig,
-    credentialsJson: WalletCredentials,
-    didJson: Object,
-    isMediator: boolean,
     routing: {
       endpoint: string;
       routingKeys: string[];
@@ -336,6 +329,29 @@ class ConnectionService {
       throw error;
     }
   }
+
+
+  async connectionStatus(
+    configJson: WalletConfig,
+    credentialsJson: WalletCredentials, 
+    verkey:string,
+  ) {
+    try {
+      const query = {
+        connectionId: verkey
+      }
+      const connection: Connection = await WalletStorageService.getWalletRecordFromQuery(configJson, credentialsJson, RecordType.Connection, JSON.stringify(query));
+      if (!connection) {
+        throw new Error(`Connection for verkey ${verkey} not found!`);
+      }
+      return connection;
+    }
+    catch (error) {
+      console.log('Connection - Connection status error = ', JSON.stringify(error));
+      throw error;
+    }
+  }
+
 }
 
 export default new ConnectionService();

@@ -150,8 +150,8 @@ export class Service {
   constructor(
     id: string,
     serviceEndpoint: string,
-    recipientKeys: Verkey[] = [],
-    routingKeys: Verkey[] = [],
+    recipientKeys: string[] = [],
+    routingKeys: string[] = [],
     priority: number = 0,
     type: string
   ) {
