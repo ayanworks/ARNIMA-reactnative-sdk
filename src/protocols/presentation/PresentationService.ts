@@ -548,7 +548,7 @@ class PresentationService {
 
           if (credMatch.cred_info.rev_reg_id !== null) {
             if (credMatch.cred_info.rev_reg_id !== revRegIdMatcher) {
-              if (isNeedToCreateMasterRevocObj) {
+              if (fromTime && toTime) {
                 const revocStateObject = await ArnimaSdk.createRevocationStateObject(
                   poolName,
                   poolConfig,
