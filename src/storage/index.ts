@@ -21,17 +21,14 @@ const agentDB = new Realm({
         verKey: 'string',
         masterSecretId: 'string',
       },
-    }]
+    },
+  ],
 });
 
 const DBServices = {
   storeWallet(data) {
     agentDB.write(() => {
-      agentDB.create(
-        'wallet',
-        data,
-        true,
-      );
+      agentDB.create('wallet', data, true);
     });
   },
 
@@ -44,32 +41,37 @@ const DBServices = {
   getServiceEndpoint() {
     const query = agentDB.objects('wallet');
     const wallet: any = Array.from(query)[0];
-    return wallet.serviceEndpoint
+    return wallet.serviceEndpoint;
   },
 
   getLabel() {
     const query = agentDB.objects('wallet');
     const wallet: any = Array.from(query)[0];
-    return wallet.label
+    return wallet.label;
   },
 
   getMasterSecretId() {
     const query = agentDB.objects('wallet');
     const wallet: any = Array.from(query)[0];
-    return wallet.masterSecretId
+    return wallet.masterSecretId;
   },
 
   getRoutingKeys() {
     const query = agentDB.objects('wallet');
     const wallet: any = Array.from(query)[0];
-    return wallet.routingKey
+    return wallet.routingKey;
   },
 
   getVerKey() {
     const query = agentDB.objects('wallet');
     const wallet: any = Array.from(query)[0];
-    return wallet.verKey
-    
+    return wallet.verKey;
+  },
+
+  resetWallet() {
+    agentDB.write(() => {
+      agentDB.deleteAll();
+    });
   },
 };
 
