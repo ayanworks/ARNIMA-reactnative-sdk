@@ -267,7 +267,6 @@ class PresentationService {
       }
 
       if (message.hasOwnProperty('comment') && isJson(message?.comment)) {
-        console.log('I am here', message?.comment);
         if (JSON.parse(message?.comment).hasOwnProperty('demoPasswordless')) {
           const response = await this.createPresentation(
             configJson,
@@ -413,7 +412,6 @@ class PresentationService {
           RecordType.Pool,
           JSON.stringify(queryPool),
         );
-      console.log('poolName', poolName);
       const [requestedCredentials, revocStates] =
         await this.getRequestedCredentialsForProofRequest(
           proofRequest,
@@ -423,7 +421,6 @@ class PresentationService {
           sdkDB.publicDid,
           revealAttributes,
         );
-      console.log('requestedCredentials', requestedCredentials);
       const credentialObjects: Array<Object> = [];
       const credIds = [];
 
@@ -461,9 +458,6 @@ class PresentationService {
         poolConfig,
         sdkDB.publicDid,
       );
-
-      console.log('schemas', schemas);
-      console.log('credDefs', credDefs);
 
       const presentation = await ArnimaSdk.proverCreateProof(
         JSON.stringify(configJson),
@@ -549,14 +543,8 @@ class PresentationService {
           publicDid,
           schemaId,
         );
-        console.log(
-          'Presentation - generateSchemaJson schemaId ',
-          schemaId,
-          JSON.parse(schema),
-        );
         schemas[schemaId] = JSON.parse(schema);
       }
-      console.log('Presentation - generateSchemaJson schemas ', schemas);
       return schemas;
     } catch (error) {
       console.log('Presentation - generateSchemaJson error = ', error);

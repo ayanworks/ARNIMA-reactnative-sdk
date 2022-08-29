@@ -151,7 +151,7 @@ class Agent {
         JSON.parse(this.wallet.walletCredentials),
       );
     } catch (error) {
-      console.log('Agent - Select default pool error = ', error);
+      console.log('Agent - deleteAllPools error = ', error);
       throw error;
     }
   };

@@ -174,7 +174,7 @@ class PoolService {
       }
       return true;
     } catch (error) {
-      console.log('Pool - Select default pool error = ', error);
+      console.log('Pool - delete pool records error = ', error);
       throw error;
     }
   }
@@ -197,7 +197,7 @@ class PoolService {
       }
       return true;
     } catch (error) {
-      console.log('Pool - Select default pool error = ', error);
+      console.log('Pool - delete all pools error = ', error);
       throw error;
     }
   }
