@@ -100,6 +100,17 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
+    public void deletePool(String poolConfigName, Promise promise) {
+        try {
+            Pool.deletePoolLedgerConfig(poolConfigName);
+            promise.resolve(null);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.getMessage(), e);
+        }
+    }
+
+    @ReactMethod
     public void createWallet(String walletConfig, String walletCredentials, Promise promise) {
         new CreateWallet().execute(walletConfig, walletCredentials, promise);
     }
@@ -123,6 +134,40 @@ public class ArnimaSdk extends ReactContextBaseJavaModule {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+        }
+    }
+
+    @ReactMethod
+    public void deleteWallet(String walletConfig, String walletCredentials,
+                                   Promise promise) {
+        try {
+            Wallet.deleteWallet(walletConfig, walletCredentials);
+            promise.resolve(null);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
+        }
+    }
+
+    @ReactMethod
+    public void closeWallet(Promise promise) {
+        Wallet wallet = null;
+        try {
+            wallet = walletMap.get(1);
+            wallet.closeWallet();
+            walletMap.remove(wallet);
+
+            for (Map.Entry<Integer, Wallet> entry: walletMap.entrySet()) {
+                if (entry.getValue().equals(wallet)) {
+                    walletMap.remove(entry.getKey());
+                    break;
+                }
+            }
+
+            promise.resolve(null);
+        } catch (Exception e) {
+            IndySdkRejectResponse rejectResponse = new IndySdkRejectResponse(e);
+            promise.reject(rejectResponse.getCode(), rejectResponse.toJson(), e);
         }
     }
 
